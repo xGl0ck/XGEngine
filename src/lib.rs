@@ -1,5 +1,5 @@
 mod core;
-mod loader;
+mod events;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

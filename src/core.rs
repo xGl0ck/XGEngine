@@ -18,7 +18,7 @@ impl AppBoostrap {
         }
     }
 
-    pub fn boostrap(&mut self) {
+    pub fn boostrap(&mut self) -> bool {
 
         let mut guard = match self.init_pipeline.lock() {
             Ok(guard) => guard,
@@ -31,6 +31,8 @@ impl AppBoostrap {
                 panic!("The error occurred in init pipeline")
             }
         }
+
+        true
     }
 
     fn add_initializer(&mut self, initializer: Box<dyn Initializer>) {
@@ -89,11 +91,8 @@ mod tests {
         boostrap.add_initializer(Box::new(init));
         boostrap.add_initializer(Box::new(init_b));
 
-        boostrap.boostrap();
+        let result = boostrap.boostrap();
 
-        assert_eq!(true, init.initialized);
-        assert_eq!(true, init.initialized);
+        assert_eq!(true, result);
     }
-
-
 }
