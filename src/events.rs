@@ -1,8 +1,8 @@
 use event_bus::Event;
 
 pub enum InteractType {
-    KEYBOARD(u32),
-    MOUSE(u8, i32, i32)
+    KEYBOARD(glfw::Key),
+    MOUSE(glfw::MouseButton, i32, i32)
 }
 
 pub struct InitEvent {
@@ -114,7 +114,7 @@ mod tests {
         subscribe_event!("test", test_sub_cancelled);
 
         let mut event = InteractEvent {
-            interact: KEYBOARD(0x000000ff),
+            interact: KEYBOARD(glfw::Key::B),
             cancelled: false,
             reason: None
         };

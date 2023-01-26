@@ -1,10 +1,8 @@
 [package]
-name = "XGEngine"
+name = "Renderer"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-event-bus = { git = "https://github.com/XglockMan/event-bus.git" }
-glfw = "0.50.0"
