@@ -1,8 +1,28 @@
+use event_bus::EventBus;
+use raw_window_handle::RawWindowHandle;
+
 mod core;
 mod events;
 
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
+pub struct Engine {
+    window_handle: RawWindowHandle
+}
+
+impl Engine {
+
+    fn new(window_handle: RawWindowHandle) -> Self {
+        Self {
+            window_handle
+        }
+    }
+
+    fn start() {
+
+        let engine_event_bus = EventBus::new("engine");
+
+
+    }
+
 }
 
 #[cfg(test)]

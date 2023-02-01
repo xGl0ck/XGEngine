@@ -5,6 +5,14 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[workspace]
+members = [
+    "SceneManager",
+    "Renderer",
+    "ShaderManager"
+]
+
 [dependencies]
 event-bus = { git = "https://github.com/XglockMan/event-bus.git" }
 glfw = "0.50.0"
+raw-window-handle = "0.5.0"

@@ -1,4 +1,5 @@
 use event_bus::Event;
+use glfw::Key::S;
 
 pub enum InteractType {
     KEYBOARD(glfw::Key),
@@ -19,6 +20,17 @@ pub struct InteractEvent {
     interact: InteractType,
     cancelled: bool,
     reason: Option<String>
+}
+
+impl InitEvent {
+
+    pub fn new() -> Self {
+        Self {
+            cancelled: false,
+            reason: None
+        }
+    }
+
 }
 
 impl Event for InteractEvent {
@@ -60,6 +72,7 @@ impl Event for ShutdownEvent {
 }
 
 impl Event for InitEvent {
+
     fn cancellable(&self) -> bool {
         true
     }

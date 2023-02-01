@@ -1,4 +1,6 @@
 use std::sync::{Mutex, MutexGuard};
+use event_bus::dispatch_event;
+use crate::events::InitEvent;
 
 pub trait Initializer {
 
@@ -31,6 +33,10 @@ impl AppBoostrap {
                 panic!("The error occurred in init pipeline")
             }
         }
+
+        let event: InitEvent = InitEvent::new();
+
+        dispatch_event!("engine", &event);
 
         true
     }
