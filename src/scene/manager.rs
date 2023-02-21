@@ -1,17 +1,17 @@
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use event_bus::{dispatch_event, Event};
 use crate::scene::scene::Scene;
 
 pub struct SceneManager {
-    scene_map: Mutex<HashMap<String, Scene>>
+    scene_map: Arc<Mutex<HashMap<String, Scene>>>
 }
 
 impl SceneManager {
 
     fn new() -> Self {
         Self {
-            scene_map: Mutex::new(HashMap::new())
+            scene_map: Arc::new(Mutex::new(HashMap::new()))
         }
     }
 
@@ -32,8 +32,8 @@ impl SceneManager {
             Err(poisoned) => poisoned.into_inner()
         };
 
-
-        let scene = match scene_map.get(name.as_str()).unwrap() {
+        /*
+        let scene: &Scene = match scene_map.get(name.as_str()).unwrap() {
             Ok(scene) => scene,
             Err(error) => Err("Scene does not exist")
         };
@@ -45,6 +45,8 @@ impl SceneManager {
         };
 
         dispatch_event!("engine", &event);
+
+         */
 
         Ok(())
     }

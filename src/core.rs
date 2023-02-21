@@ -34,7 +34,7 @@ impl AppBoostrap {
             }
         }
 
-        let event: InitEvent = InitEvent::new();
+        let mut event: InitEvent = InitEvent::new();
 
         dispatch_event!("engine", &mut event);
 

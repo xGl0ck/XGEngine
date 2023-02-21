@@ -1,8 +1,8 @@
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use crate::scene::chunk::Chunk;
 
-#[derive(Clone)]
+#[derive(Clone, Eq, Hash, PartialEq)]
 pub struct ChunkCoordinate {
     x: i32,
     y: i32
@@ -24,7 +24,7 @@ impl ChunkCorners {
 
 pub struct Scene {
     name: String,
-    chunk_map: Mutex<HashMap<ChunkCoordinate, Chunk>>,
+    chunk_map: Arc<Mutex<HashMap<ChunkCoordinate, Chunk>>>,
     chunk_corners: Mutex<Vec<ChunkCorners>>
 }
 
@@ -32,7 +32,7 @@ impl Scene {
 
     fn new(name: String) -> Self {
         Self {
-            name, chunk_map: Mutex::new(HashMap::new()), chunk_corners: Mutex::new(Vec::new())
+            name, chunk_map: Arc::new(Mutex::new(HashMap::new())), chunk_corners: Mutex::new(Vec::new())
         }
     }
 
@@ -51,8 +51,7 @@ impl Scene {
                     Err(poisoned) => poisoned.into_inner()
                 };
 
-                return map.get(&corner.chunk)
-
+                return map.get(&corner.chunk.clone());
             }
         }
 
