@@ -7,8 +7,7 @@ edition = "2021"
 
 [workspace]
 members = [
-    "SceneManager",
-    "Renderer",
+    "ExampleImplementation",
     "ShaderManager"
 ]
 
@@ -16,3 +15,4 @@ members = [
 event-bus = { git = "https://github.com/XglockMan/event-bus.git" }
 glfw = "0.50.0"
 raw-window-handle = "0.5.0"
+bgfx-rs = "0.14.0"

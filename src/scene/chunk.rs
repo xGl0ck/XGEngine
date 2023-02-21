@@ -1,5 +1,5 @@
 use std::sync::{Mutex, MutexGuard};
-use crate::object::SceneObject;
+use crate::scene::object::SceneObject;
 
 pub struct Chunk {
     pub x: i32,

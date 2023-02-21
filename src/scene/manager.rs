@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 use event_bus::{dispatch_event, Event};
-use crate::scene::Scene;
+use crate::scene::scene::Scene;
 
 pub struct SceneManager {
     scene_map: Mutex<HashMap<String, Scene>>
@@ -27,11 +27,11 @@ impl SceneManager {
     }
 
     fn render_scene(&self, name: String) -> std::io::Result<()> {
-
         let scene_map = match self.scene_map.lock() {
             Ok(guard) => guard,
             Err(poisoned) => poisoned.into_inner()
         };
+
 
         let scene = match scene_map.get(name.as_str()).unwrap() {
             Ok(scene) => scene,

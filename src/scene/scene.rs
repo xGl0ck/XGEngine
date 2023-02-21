@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
-use crate::chunk::Chunk;
+use crate::scene::chunk::Chunk;
 
 #[derive(Clone)]
 pub struct ChunkCoordinate {
