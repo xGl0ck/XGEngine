@@ -25,14 +25,14 @@ impl ChunkCorners {
 pub struct Scene {
     name: String,
     chunk_map: Arc<Mutex<HashMap<ChunkCoordinate, Chunk>>>,
-    chunk_corners: Mutex<Vec<ChunkCorners>>
+    chunk_corners: Arc<Mutex<Vec<ChunkCorners>>>
 }
 
 impl Scene {
 
     fn new(name: String) -> Self {
         Self {
-            name, chunk_map: Arc::new(Mutex::new(HashMap::new())), chunk_corners: Mutex::new(Vec::new())
+            name, chunk_map: Arc::new(Mutex::new(HashMap::new())), chunk_corners: Arc::new(Mutex::new(Vec::new()))
         }
     }
 
