@@ -1,30 +1,28 @@
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
+use glam::{IVec2, Vec2};
 use crate::scene::chunk::Chunk;
 
-#[derive(Clone, Eq, Hash, PartialEq)]
-pub struct ChunkCoordinate {
-    x: i32,
-    y: i32
-}
-
 pub struct ChunkCorners {
-    begin: ChunkCoordinate,
-    end: ChunkCoordinate,
-    chunk: ChunkCoordinate
+    begin: Vec2,
+    end: Vec2,
+    chunk: IVec2
 }
 
 impl ChunkCorners {
 
-    fn check_range(&self, x: i32, y: i32) -> bool {
-        x >= self.begin.x && y >= self.begin.y && x <= self.end.x && y <= self.end.y
+    fn check_range(&self, coordinates: Vec2) -> bool {
+        coordinates.x >= self.begin.x &&
+            coordinates.y >= self.begin.y &&
+            coordinates.x <= self.end.x &&
+            coordinates.y <= self.end.y
     }
 
 }
 
 pub struct Scene {
     name: String,
-    chunk_map: Arc<Mutex<HashMap<ChunkCoordinate, Chunk>>>,
+    chunk_map: Arc<Mutex<HashMap<IVec2, Chunk>>>,
     chunk_corners: Arc<Mutex<Vec<ChunkCorners>>>
 }
 
@@ -36,7 +34,7 @@ impl Scene {
         }
     }
 
-    fn get_chunk(&self, x: i32, y: i32) -> Option<&Chunk> {
+    fn get_chunk(&self, coordinates: Vec2) -> Option<&Chunk> {
 
         let mut corners = match self.chunk_corners.lock() {
             Ok(data) => data,
@@ -44,34 +42,66 @@ impl Scene {
         };
 
         for corner in corners.iter() {
-            if corner.check_range(x, y) {
+
+            if corner.check_range(coordinates) {
 
                 let mut map = match self.chunk_map.lock() {
                     Ok(data) => data,
                     Err(poisoned) => poisoned.into_inner()
                 };
 
-                return map.get(&corner.chunk.clone());
+                let coordinates: &IVec2 = &corner.chunk;
+
+                let chunk: Option<&Chunk> = map.get(coordinates);
+
+                return chunk;
             }
+
         }
 
         None
     }
 
-    fn add_chunk(&mut self, chunk: Chunk, begin: ChunkCoordinate, end: ChunkCoordinate) -> Option<Chunk> {
+    fn add_chunk(&mut self, chunk: Chunk, begin: Vec2, end: Vec2) {
 
-        let coordinate = ChunkCoordinate { x: chunk.x, y: chunk.y };
+        let mut chunk_map: MutexGuard<HashMap<IVec2, Chunk>> = match self.chunk_map.lock() {
+            Ok(map) => map,
+            Err(poisoned) => poisoned.into_inner()
+        };
 
-        let mut chunk_map = match self.chunk_map.lock() {
+        let mut corners_vec: MutexGuard<Vec<ChunkCorners>> = match self.chunk_corners.lock() {
             Ok(map) => map,
             Err(poisoned) => poisoned.into_inner()
         };
 
         let corners = ChunkCorners {
-            begin, end, chunk: coordinate.clone()
+            begin, end, chunk: chunk.coordinates
         };
 
-        chunk_map.insert(coordinate, chunk)
+        chunk_map.insert(chunk.coordinates.clone(), chunk);
+        corners_vec.push(corners);
+    }
+
+}
+
+#[cfg(test)]
+mod tests {
+    use glam::{IVec2, Vec2};
+    use crate::scene::chunk::Chunk;
+    use crate::scene::scene::Scene;
+
+    #[test]
+    fn chunk_test() {
+
+        let mut scene = Scene::new(String::from("test"));
+
+        let mut test_chunk = Chunk::new(IVec2::new(0, 0));
+
+        scene.add_chunk(test_chunk, Vec2::new(0.0, 0.0), Vec2::new(150.0, 150.0));
+
+        assert_eq!(scene.get_chunk(Vec2::new(50.0, 50.0)).is_some(), true);
+        assert_eq!(scene.get_chunk(Vec2::new(200.0, 200.0)).is_none(), true);
+
     }
 
 }

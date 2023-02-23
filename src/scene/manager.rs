@@ -32,21 +32,19 @@ impl SceneManager {
             Err(poisoned) => poisoned.into_inner()
         };
 
-        /*
-        let scene: &Scene = match scene_map.get(name.as_str()).unwrap() {
-            Ok(scene) => scene,
-            Err(error) => Err("Scene does not exist")
-        };
+        let scene: Option<&Scene> = scene_map.get(name.as_str());
 
-        let event = ChangeSceneEvent {
-            scene: &scene,
+        if scene.is_none() {
+            panic!("Scene instance does not exist")
+        }
+
+        let mut event = ChangeSceneEvent {
+            scene: scene.unwrap(),
             cancelled: false,
             reason: None
         };
 
-        dispatch_event!("engine", &event);
-
-         */
+        dispatch_event!("engine", &mut event);
 
         Ok(())
     }
@@ -54,7 +52,7 @@ impl SceneManager {
 }
 
 pub struct ChangeSceneEvent {
-    scene: &'static Scene,
+    scene: *const Scene,
     cancelled: bool,
     reason: Option<String>
 }
