@@ -1,20 +1,20 @@
 use bgfx_rs::bgfx::Texture;
+use glam::Vec3;
+use uuid::Uuid;
 
 pub struct PosVertex {
-    x: f32,
-    y: f32,
-    z: f32,
-    normal_rgba: u32,
-    tangent: u32,
-    texture_u: i16,
-    texture_v: i16
+    pub coordinates: Vec3,
+    pub normal_rgba: u32,
+    pub tangent: u32,
+    pub texture_u: i16,
+    pub texture_v: i16
 }
 
 pub struct SceneObject {
-    vertices: Vec<PosVertex>,
-    indices: Vec<u16>,
-    texture_color: Texture,
-    texture_normal: Texture
+    pub vertices: Vec<PosVertex>,
+    pub indices: Vec<u16>,
+    pub texture_color: Texture,
+    pub texture_normal: Texture
 }
 
 impl SceneObject {

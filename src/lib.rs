@@ -4,6 +4,13 @@ use raw_window_handle::RawWindowHandle;
 mod core;
 mod events;
 
+mod scene {
+    pub mod chunk;
+    pub mod manager;
+    pub mod object;
+    pub mod scene;
+}
+
 pub struct Engine {
     window_handle: RawWindowHandle
 }
@@ -21,6 +28,8 @@ impl Engine {
         let engine_event_bus = EventBus::new("engine");
 
 
+
+
     }
 
 }
@@ -28,10 +37,4 @@ impl Engine {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
 }

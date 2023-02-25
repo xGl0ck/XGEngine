@@ -1,4 +1,4 @@
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard};
 use event_bus::dispatch_event;
 use crate::events::InitEvent;
 
@@ -9,14 +9,14 @@ pub trait Initializer {
 }
 
 pub struct AppBoostrap {
-    init_pipeline: Mutex<Vec<Box<dyn Initializer>>>
+    init_pipeline: Arc<Mutex<Vec<Box<dyn Initializer>>>>
 }
 
 impl AppBoostrap {
 
     pub fn new() -> Self {
         Self {
-            init_pipeline: Mutex::new(Vec::new())
+            init_pipeline: Arc::new(Mutex::new(Vec::new()))
         }
     }
 
@@ -34,9 +34,9 @@ impl AppBoostrap {
             }
         }
 
-        let event: InitEvent = InitEvent::new();
+        let mut event: InitEvent = InitEvent::new();
 
-        dispatch_event!("engine", &event);
+        dispatch_event!("engine", &mut event);
 
         true
     }
