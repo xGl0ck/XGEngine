@@ -11,8 +11,6 @@ pub struct PosVertex {
 }
 
 pub struct SceneObject {
-    pub name: String,
-    pub id: Uuid,
     pub vertices: Vec<PosVertex>,
     pub indices: Vec<u16>,
     pub texture_color: Texture,
@@ -21,9 +19,9 @@ pub struct SceneObject {
 
 impl SceneObject {
 
-    pub fn new(name: String, vertices: Vec<PosVertex>, indices: Vec<u16>, texture_color: Texture, texture_normal: Texture) -> Self {
+    pub fn new(vertices: Vec<PosVertex>, indices: Vec<u16>, texture_color: Texture, texture_normal: Texture) -> Self {
         Self {
-            name, id: Uuid::default() ,vertices, indices, texture_color, texture_normal
+            vertices, indices, texture_color, texture_normal
         }
     }
 
