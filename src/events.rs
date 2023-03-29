@@ -1,9 +1,18 @@
 use event_bus::Event;
+use glam::{Vec2, Vec3};
 use glfw::Key::S;
+use crate::scene::scene::Scene;
 
 pub enum InteractType {
-    KEYBOARD(glfw::Key),
-    MOUSE(glfw::MouseButton, i32, i32)
+    Keyboard(glfw::Key),
+    Mouse(glfw::MouseButton, i32, i32)
+}
+
+pub enum Action {
+    ChangeScene(String),
+    RenderScene(*const Scene),
+    ViewPortUpdate(Vec3, Vec3, Vec3, i32),
+    ClearRender()
 }
 
 pub struct InitEvent {
@@ -20,6 +29,11 @@ pub struct InteractEvent {
     interact: InteractType,
     cancelled: bool,
     reason: Option<String>
+}
+
+pub struct ActionEvent {
+    cancelled: bool,
+    action: Action
 }
 
 impl InitEvent {
@@ -97,7 +111,7 @@ mod tests {
     use super::*;
     use event_bus::{subscribe_event, dispatch_event, EventBus, Event, EventResult};
     use event_bus::EventResult::{EvCancelled, EvPassed};
-    use crate::events::InteractType::KEYBOARD;
+    use crate::events::InteractType::Keyboard;
 
     fn test_sub(event: &mut InteractEvent) {
         println!("Event called");
@@ -127,7 +141,7 @@ mod tests {
         subscribe_event!("test", test_sub_cancelled);
 
         let mut event = InteractEvent {
-            interact: KEYBOARD(glfw::Key::B),
+            interact: Keyboard(glfw::Key::B),
             cancelled: false,
             reason: None
         };

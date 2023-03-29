@@ -4,6 +4,11 @@ use raw_window_handle::RawWindowHandle;
 mod core;
 mod events;
 
+mod renderer {
+    pub mod controller;
+    pub mod renderer;
+}
+
 mod scene {
     pub mod chunk;
     pub mod manager;

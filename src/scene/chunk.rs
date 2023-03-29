@@ -3,11 +3,11 @@ use std::collections::HashMap;
 use std::sync::{Mutex, MutexGuard};
 use glam::{IVec2};
 use uuid::Uuid;
-use crate::scene::object::SceneObject;
+use crate::scene::object::{SceneObject};
 
 pub struct Chunk {
     pub coordinates: IVec2,
-    pub objects: Vec<SceneObject>
+    pub objects: Vec<Box<dyn SceneObject>>
 }
 
 impl Chunk {
@@ -18,7 +18,7 @@ impl Chunk {
         }
     }
 
-    pub fn add_object(&mut self, object: SceneObject) -> usize {
+    pub fn add_object(&mut self, object: Box<dyn SceneObject>) -> usize {
 
         let index: usize = self.objects.len();
 

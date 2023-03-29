@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use event_bus::{dispatch_event, Event, EventResult};
+use event_bus::{dispatch_event, Event, EventResult, subscribe_event};
+use crate::events::ActionEvent;
 use crate::scene::scene::Scene;
 
 pub struct SceneManager {
@@ -58,6 +59,7 @@ pub struct ChangeSceneEvent {
 }
 
 impl Event for ChangeSceneEvent {
+
     fn cancellable(&self) -> bool {
         true
     }
