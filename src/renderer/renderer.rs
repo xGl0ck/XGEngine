@@ -56,7 +56,7 @@ pub struct BgfxRenderer {
     width: u32,
     height: u32,
     surface: RawWindowHandle,
-    debug: bool,
+    debug: Arc<Mutex<bool>>,
     scene: Option<Rc<Arc<Mutex<Scene>>>>,
     debug_data: Option<DebugData>
 }
@@ -66,7 +66,7 @@ impl BgfxRenderer {
     // constructor
     pub fn new(width: u32, height: u32, surface: RawWindowHandle, debug: bool) -> Self {
         Self {
-            width, height, surface, debug, scene: None, debug_data: None
+            width, height, surface, debug: Arc::new(Mutex::new(debug)), scene: None, debug_data: None
         }
     }
 
@@ -113,6 +113,7 @@ impl Renderer for BgfxRenderer {
 
     fn do_render_cycle(&mut self) {
         log!("Rendering BgfxRenderer");
+
     }
 
     fn shutdown(&mut self) {
@@ -124,6 +125,10 @@ impl Renderer for BgfxRenderer {
     }
 
     fn set_debug_data(&mut self, debug_data: bool, data: DebugData) {
+
+        let mut debug = self.debug.lock().expect("Failed to lock debug mutex");
+        *debug = debug_data;
+
         self.debug_data = Some(data);
     }
 
