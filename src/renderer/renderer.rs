@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use bgfx_rs::bgfx;
-use bgfx_rs::bgfx::{Init, PlatformData};
+use bgfx_rs::bgfx::{Init, PlatformData, ResetArgs};
 use log::{error, log};
 use raw_window_handle::RawWindowHandle;
 use crate::scene::scene::Scene;
@@ -41,6 +41,14 @@ impl DebugData {
 
 }
 
+pub struct RenderPerspective {
+    pub width: u32,
+    pub height: u32,
+    pub fov: f32,
+    pub near: f32,
+    pub far: f32
+}
+
 pub trait Renderer {
 
     fn init(&mut self);
@@ -49,24 +57,28 @@ pub trait Renderer {
     fn set_scene(&mut self, scene: Rc<Arc<Mutex<Scene>>>);
     fn set_debug_data(&mut self, debug_data: bool, data: DebugData);
     fn clean_up(&mut self);
+    fn update_surface_resolution(&mut self, width: u32, height: u32);
+    fn update_perspective(&mut self, perspective: RenderPerspective);
 
 }
 
 pub struct BgfxRenderer {
     width: u32,
     height: u32,
+    old_size: (i32, i32),
     surface: RawWindowHandle,
     debug: Arc<Mutex<bool>>,
     scene: Option<Rc<Arc<Mutex<Scene>>>>,
-    debug_data: Option<DebugData>
+    debug_data: Option<DebugData>,
+    perspective: RenderPerspective
 }
 
 impl BgfxRenderer {
 
     // constructor
-    pub fn new(width: u32, height: u32, surface: RawWindowHandle, debug: bool) -> Self {
+    pub fn new(width: u32, height: u32, surface: RawWindowHandle, debug: bool, perspective: RenderPerspective) -> Self {
         Self {
-            width, height, surface, debug: Arc::new(Mutex::new(debug)), scene: None, debug_data: None
+            width, height, surface, debug: Arc::new(Mutex::new(debug)), scene: None, debug_data: None, old_size: (0, 0), perspective
         }
     }
 
@@ -108,11 +120,11 @@ impl Renderer for BgfxRenderer {
 
         init.platform_data = platform_data;
         bgfx::init(&init);
-
     }
 
     fn do_render_cycle(&mut self) {
         log!("Rendering BgfxRenderer");
+
 
     }
 
@@ -136,5 +148,16 @@ impl Renderer for BgfxRenderer {
         log!("Cleaning up BgfxRenderer");
     }
 
+    fn update_surface_resolution(&mut self, width: u32, height: u32) {
+        self.width = width;
+        self.height = height;
+        bgfx::reset(self.width as _, self.height as _, ResetArgs::default());
+    }
+
+    fn update_perspective(&mut self, perspective: RenderPerspective) {
+
+
+
+    }
 }
 
