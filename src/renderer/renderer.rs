@@ -2,7 +2,8 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use bgfx_rs::bgfx;
 use bgfx_rs::bgfx::{Init, PlatformData, ResetArgs};
-use log::{error, log};
+use glam::Vec3;
+use log::{error, info, log, trace};
 use raw_window_handle::RawWindowHandle;
 use crate::scene::scene::Scene;
 
@@ -49,12 +50,40 @@ pub struct RenderPerspective {
     pub far: f32
 }
 
+impl RenderPerspective {
+
+    // constructor
+    pub fn new(width: u32, height: u32, fov: f32, near: f32, far: f32) -> Self {
+        Self {
+            width, height, fov, near, far
+        }
+    }
+
+}
+
+pub struct RenderView {
+    pub eye: Vec3,
+    pub at: Vec3,
+    pub up: Vec3
+}
+
+impl RenderView {
+
+    // constructor
+    pub fn new(eye: Vec3, at: Vec3, up: Vec3) -> Self {
+        Self {
+            eye, at, up
+        }
+    }
+
+}
+
 pub trait Renderer {
 
     fn init(&mut self);
     fn do_render_cycle(&mut self);
     fn shutdown(&mut self);
-    fn set_scene(&mut self, scene: Rc<Arc<Mutex<Scene>>>);
+    fn set_scene(&mut self, scene: Rc<Scene>);
     fn set_debug_data(&mut self, debug_data: bool, data: DebugData);
     fn clean_up(&mut self);
     fn update_surface_resolution(&mut self, width: u32, height: u32);
@@ -68,17 +97,26 @@ pub struct BgfxRenderer {
     old_size: (i32, i32),
     surface: RawWindowHandle,
     debug: Arc<Mutex<bool>>,
-    scene: Option<Rc<Arc<Mutex<Scene>>>>,
+    scene: Option<Arc<Mutex<Rc<Scene>>>>,
     debug_data: Option<DebugData>,
-    perspective: RenderPerspective
+    perspective: Arc<Mutex<RenderPerspective>>,
+    view: Arc<Mutex<RenderView>>
 }
 
 impl BgfxRenderer {
 
     // constructor
-    pub fn new(width: u32, height: u32, surface: RawWindowHandle, debug: bool, perspective: RenderPerspective) -> Self {
+    pub fn new(width: u32, height: u32, surface: RawWindowHandle, debug: bool, perspective: RenderPerspective, view: RenderView) -> Self {
         Self {
-            width, height, surface, debug: Arc::new(Mutex::new(debug)), scene: None, debug_data: None, old_size: (0, 0), perspective
+            width,
+            height,
+            surface,
+            debug: Arc::new(Mutex::new(debug)),
+            scene: None,
+            debug_data: None,
+            old_size: (0, 0),
+            perspective: Arc::new(Mutex::new(perspective)),
+            view: Arc::new(Mutex::new(view))
         }
     }
 
@@ -88,7 +126,7 @@ impl Renderer for BgfxRenderer {
 
     fn init(&mut self) {
 
-        log!("Initializing BgfxRenderer");
+        info!("Initializing BgfxRenderer");
 
         let mut init = Init::new();
         init.type_r = bgfx::RendererType::Count;
@@ -123,20 +161,34 @@ impl Renderer for BgfxRenderer {
     }
 
     fn do_render_cycle(&mut self) {
-        log!("Rendering BgfxRenderer");
+
+        info!("Rendering BgfxRenderer");
+
 
 
     }
 
     fn shutdown(&mut self) {
-        log!("Shutting down BgfxRenderer");
+        info!("Shutting down BgfxRenderer");
     }
 
-    fn set_scene(&mut self, scene: Rc<Arc<Mutex<Scene>>>) {
-        self.scene = Some(scene);
+    fn set_scene(&mut self, scene: Rc<Scene>) {
+
+        if self.scene.is_none() {
+            error!("Scene is not initialized");
+            return;
+        }
+
+        let binding = self.scene.clone().unwrap();
+
+        let mut scene_guard = binding.lock().expect("Failed to lock scene mutex");
+        *scene_guard = scene;
+
     }
 
     fn set_debug_data(&mut self, debug_data: bool, data: DebugData) {
+
+        let binding = self.scene.clone().unwrap();
 
         let mut debug = self.debug.lock().expect("Failed to lock debug mutex");
         *debug = debug_data;
@@ -145,7 +197,7 @@ impl Renderer for BgfxRenderer {
     }
 
     fn clean_up(&mut self) {
-        log!("Cleaning up BgfxRenderer");
+        info!("Cleaning up BgfxRenderer");
     }
 
     fn update_surface_resolution(&mut self, width: u32, height: u32) {
@@ -156,7 +208,8 @@ impl Renderer for BgfxRenderer {
 
     fn update_perspective(&mut self, perspective: RenderPerspective) {
 
-
+        let mut perspective_guard = self.perspective.lock().expect("Failed to lock perspective mutex");
+        *perspective_guard = perspective;
 
     }
 }

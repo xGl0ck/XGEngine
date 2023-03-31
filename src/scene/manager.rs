@@ -1,47 +1,71 @@
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use event_bus::{dispatch_event, Event, EventResult, subscribe_event};
 use crate::events::ActionEvent;
 use crate::scene::scene::Scene;
 
 pub struct SceneManager {
-    pub scene_map: Arc<Mutex<Box<HashMap<String, Scene>>>>
+    pub scene_map: Arc<Mutex<Box<HashMap<String, Rc<Scene>>>>>
 }
 
 impl SceneManager {
 
-    fn new() -> Self {
+    pub fn new() -> Self {
+
+        let default_scene = Scene::new(String::from("default"));
+
+        let mut scene_map: Box<HashMap<String, Rc<Scene>>> = Box::new(HashMap::new());
+
+        scene_map.insert(String::from(&default_scene.name.clone()), Rc::new(default_scene));
+
         Self {
-            scene_map: Arc::new(Mutex::new(Box::new(HashMap::new())))
+            scene_map: Arc::new(Mutex::new(scene_map))
         }
     }
 
-    fn add_scene(&mut self, scene: Scene) {
+    pub fn add_scene(&mut self, scene: Scene) {
 
         let mut scene_map = match self.scene_map.lock() {
             Ok(guard) => guard,
             Err(poisoned) => poisoned.into_inner()
         };
 
-        scene_map.insert(String::from(&scene.name), scene);
+        scene_map.insert(String::from(&scene.name), Rc::new(scene));
 
     }
 
-    fn render_scene(&self, name: String) -> std::io::Result<(EventResult)> {
+    pub fn get_scene(&self, name: String) -> Option<Rc<Scene>> {
 
         let scene_map = match self.scene_map.lock() {
             Ok(guard) => guard,
             Err(poisoned) => poisoned.into_inner()
         };
 
-        let scene: Option<&Scene> = scene_map.get(name.as_str());
+        let scene: Option<&Rc<Scene>> = scene_map.get(name.as_str());
+
+        if scene.is_none() {
+            panic!("Scene instance does not exist")
+        }
+
+        scene.cloned()
+    }
+
+    pub fn render_scene(&self, name: String) -> std::io::Result<(EventResult)> {
+
+        let scene_map = match self.scene_map.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => poisoned.into_inner()
+        };
+
+        let scene: Option<&Rc<Scene>> = scene_map.get(name.as_str());
 
         if scene.is_none() {
             panic!("Scene instance does not exist")
         }
 
         let mut event = ChangeSceneEvent {
-            scene: scene.unwrap(),
+            scene: scene.unwrap().clone(),
             cancelled: false,
             reason: None
         };
@@ -50,10 +74,19 @@ impl SceneManager {
 
     }
 
+    fn has_scene(&self, name: String) -> bool {
+        let scene_map = match self.scene_map.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => poisoned.into_inner()
+        };
+
+        scene_map.contains_key(name.as_str())
+    }
+
 }
 
 pub struct ChangeSceneEvent {
-    scene: *const Scene,
+    pub scene: Rc<Scene>,
     cancelled: bool,
     reason: Option<String>
 }

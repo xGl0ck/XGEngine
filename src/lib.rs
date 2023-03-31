@@ -3,6 +3,7 @@ use raw_window_handle::RawWindowHandle;
 
 mod core;
 mod events;
+mod environment;
 
 mod renderer {
     pub mod controller;
@@ -33,7 +34,6 @@ impl Engine {
         let engine_event_bus = EventBus::new("engine");
 
         
-
 
     }
 
