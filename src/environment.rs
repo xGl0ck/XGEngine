@@ -1,12 +1,14 @@
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 use event_bus::EventResult;
 use log::error;
+use crate::renderer::renderer::Renderer;
 use crate::scene::manager::SceneManager;
 use crate::scene::scene::Scene;
 
 pub struct EngineEnvironment {
     pub scene_manager: SceneManager,
-    pub current_scene: Rc<Scene>
+    pub current_scene: Rc<Scene>,
 }
 
 impl EngineEnvironment {
@@ -54,7 +56,6 @@ impl EngineEnvironment {
         self.scene_manager.render_scene(name)
 
     }
-
 }
 
 // unit tests

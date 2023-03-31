@@ -28,6 +28,11 @@ pub enum ObjectTypes {
     TgaTextured
 }
 
+pub struct Shaders {
+    vertex: Vec<u8>,
+    pixel: Vec<u8>
+}
+
 pub trait SceneObject {
     fn get_type(&self) -> ObjectTypes;
     fn as_any(&self) -> &dyn std::any::Any;

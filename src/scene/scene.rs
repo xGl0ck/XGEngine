@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard};
-use glam::{IVec2, Vec2};
+use glam::{IVec2, Vec2, Vec3};
+use crate::renderer::renderer::RenderView;
 use crate::scene::chunk::Chunk;
 
 pub struct ChunkCorners {
@@ -23,14 +24,15 @@ impl ChunkCorners {
 pub struct Scene {
     pub name: String,
     chunk_map: HashMap<IVec2, Chunk>,
-    chunk_corners: Vec<ChunkCorners>
+    chunk_corners: Vec<ChunkCorners>,
+    camera: RenderView
 }
 
 impl Scene {
 
-    pub fn new(name: String) -> Self {
+    pub fn new(name: String, camera: RenderView) -> Self {
         Self {
-            name, chunk_map: HashMap::new(), chunk_corners: Vec::new()
+            name, chunk_map: HashMap::new(), chunk_corners: Vec::new(), camera
         }
     }
 
