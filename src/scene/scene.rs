@@ -1,6 +1,8 @@
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex, MutexGuard};
 use glam::{IVec2, Vec2, Vec3};
+use glfw::Key::O;
 use crate::renderer::renderer::RenderView;
 use crate::scene::chunk::Chunk;
 
@@ -23,7 +25,7 @@ impl ChunkCorners {
 
 pub struct Scene {
     pub name: String,
-    chunk_map: HashMap<IVec2, Chunk>,
+    chunk_map: HashMap<IVec2, Rc<Chunk>>,
     chunk_corners: Vec<ChunkCorners>,
     camera: RenderView
 }
@@ -36,7 +38,7 @@ impl Scene {
         }
     }
 
-    pub fn get_chunk(&self, coordinates: Vec2) -> Option<&Chunk> {
+    pub fn get_chunk(&self, coordinates: Vec2) -> std::io::Result<Rc<Chunk>> {
 
         for corner in self.chunk_corners.iter() {
 
@@ -44,14 +46,18 @@ impl Scene {
 
                 let coordinates: &IVec2 = &corner.chunk;
 
-                let chunk: Option<&Chunk> = self.chunk_map.get(coordinates);
+                let chunk: Option<&Rc<Chunk>> = self.chunk_map.get(coordinates);
 
-                return chunk;
+                if chunk.is_none() {
+                    return Err(std::io::Error::new(std::io::ErrorKind::Other, "Chunk does not exist"));
+                }
+
+                return Ok(Rc::clone(chunk.unwrap()));
             }
 
         }
 
-        None
+        Err(std::io::Error::new(std::io::ErrorKind::Other, "Chunk does not exist"))
     }
 
     pub fn add_chunk(&mut self, chunk: Chunk, begin: Vec2, end: Vec2) {
@@ -60,7 +66,7 @@ impl Scene {
             begin, end, chunk: chunk.coordinates
         };
 
-        self.chunk_map.insert(chunk.coordinates.clone(), chunk);
+        self.chunk_map.insert(chunk.coordinates.clone(), Rc::new(chunk));
         self.chunk_corners.push(corners);
     }
 
@@ -68,22 +74,22 @@ impl Scene {
 
 #[cfg(test)]
 mod tests {
-    use glam::{IVec2, Vec2};
+    use glam::{IVec2, Vec2, Vec3};
+    use crate::renderer::renderer::RenderView;
     use crate::scene::chunk::Chunk;
     use crate::scene::scene::Scene;
 
     #[test]
     fn chunk_test() {
 
-        let mut scene = Scene::new(String::from("test"));
+        let mut scene = Scene::new(String::from("test"), RenderView::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0)));
 
         let mut test_chunk = Chunk::new(IVec2::new(0, 0));
 
         scene.add_chunk(test_chunk, Vec2::new(0.0, 0.0), Vec2::new(150.0, 150.0));
 
-        assert_eq!(scene.get_chunk(Vec2::new(50.0, 50.0)).is_some(), true);
-        assert_eq!(scene.get_chunk(Vec2::new(200.0, 200.0)).is_none(), true);
-
+        assert_eq!(scene.get_chunk(Vec2::new(50.0, 50.0)).is_ok(), true);
+        assert_eq!(scene.get_chunk(Vec2::new(200.0, 200.0)).is_err(), true);
     }
 
 }

@@ -1,14 +1,16 @@
+use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use event_bus::EventResult;
+use glam::Vec3;
 use log::error;
-use crate::renderer::renderer::Renderer;
+use crate::renderer::renderer::{Renderer, RenderView};
 use crate::scene::manager::SceneManager;
 use crate::scene::scene::Scene;
 
 pub struct EngineEnvironment {
     pub scene_manager: SceneManager,
-    pub current_scene: Rc<Scene>,
+    pub current_scene: Rc<RefCell<Scene>>,
 }
 
 impl EngineEnvironment {
@@ -27,23 +29,19 @@ impl EngineEnvironment {
 
     fn create_scene(&mut self, name: String) {
 
-        let scene = Scene::new(name);
+        let scene = Scene::new(name, RenderView::new(Vec3::new(0.0,0.0,0.0), Vec3::new(0.0,0.0,0.0), Vec3::new(0.0,0.0,0.0)));
 
         self.scene_manager.add_scene(scene);
 
     }
 
-    fn get_scene(&self, name: String) -> std::io::Result<Rc<Scene>> {
+    fn get_scene(&self, name: String) -> std::io::Result<Rc<RefCell<Scene>>> {
 
         let scene = self.scene_manager.get_scene(name);
 
-        if scene.is_none() {
-            panic!("Scene instance does not exist")
-        }
-
         match scene {
-            Some(scene) => Ok(scene),
-            None => {
+            Ok(scene) => Ok(Rc::clone(&scene)),
+            Err(e) => {
                 error!("Scene instance does not exist");
                 Err(std::io::Error::new(std::io::ErrorKind::Other, "Scene instance does not exist"))
             }
@@ -77,13 +75,13 @@ mod tests {
     fn test_get_scene() {
         let environment = EngineEnvironment::new();
         let scene = environment.get_scene(String::from("default"));
-        assert_eq!(scene.unwrap().name, "default");
+        assert_eq!(scene.unwrap().borrow().name, "default");
     }
 
     fn event_sub(event: &mut ChangeSceneEvent) {
-        info!("Event received: {:?}", event.scene.name);
+        info!("Event received: {:?}", event.scene.borrow().name);
 
-        println!("Event received: {:?}", event.scene.name);
+        println!("Event received: {:?}", event.scene.borrow().name);
     }
 
     #[test]

@@ -33,6 +33,7 @@ pub struct Shaders {
     pixel: Vec<u8>
 }
 
+
 pub trait SceneObject {
     fn get_type(&self) -> ObjectTypes;
     fn as_any(&self) -> &dyn std::any::Any;

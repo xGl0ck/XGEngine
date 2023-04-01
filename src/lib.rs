@@ -5,6 +5,12 @@ mod core;
 mod events;
 mod environment;
 
+mod messaging {
+//    pub mod controller;
+//    pub mod event;
+//    pub mod message;
+}
+
 mod renderer {
     pub mod controller;
     pub mod renderer;
