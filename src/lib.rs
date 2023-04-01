@@ -1,5 +1,10 @@
+use std::rc::Rc;
 use event_bus::EventBus;
+use glfw::Key::N;
+use log::info;
 use raw_window_handle::RawWindowHandle;
+use crate::renderer::renderer::Renderer;
+use crate::scene::manager::ChangeSceneEvent;
 
 mod core;
 mod events;
@@ -24,27 +29,33 @@ mod scene {
     pub mod scene;
 }
 
-pub struct Engine {
-    window_handle: RawWindowHandle
+static mut RENDERER: Option<Box<dyn Renderer>> = None;
+
+fn set_renderer(renderer: Box<dyn Renderer>) {
+
+    unsafe {
+        RENDERER = Some(renderer);
+    }
+
 }
 
-impl Engine {
+fn change_scene_handler(event: &mut ChangeSceneEvent) {
 
-    fn new(window_handle: RawWindowHandle) -> Self {
-        Self {
-            window_handle
+    unsafe {
+
+        if RENDERER.is_none() {
+            panic!("Cannot change event when RENDERER is not initialized");
         }
-    }
 
-    fn start() {
+        info!("Changing scene");
 
-        let engine_event_bus = EventBus::new("engine");
-
-        
+        RENDERER.unwrap().as_mut().set_scene(Rc::clone(&event.scene));
 
     }
 
 }
+
+
 
 #[cfg(test)]
 mod tests {

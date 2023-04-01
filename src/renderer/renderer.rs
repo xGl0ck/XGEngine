@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use bgfx_rs::bgfx;
@@ -83,7 +84,7 @@ pub trait Renderer {
     fn init(&mut self);
     fn do_render_cycle(&mut self);
     fn shutdown(&mut self);
-    fn set_scene(&mut self, scene: Rc<Scene>);
+    fn set_scene(&mut self, scene: Rc<RefCell<Scene>>);
     fn set_debug_data(&mut self, debug_data: bool, data: DebugData);
     fn clean_up(&mut self);
     fn update_surface_resolution(&mut self, width: u32, height: u32);
@@ -97,7 +98,7 @@ pub struct BgfxRenderer {
     old_size: (i32, i32),
     surface: RawWindowHandle,
     debug: Arc<Mutex<bool>>,
-    scene: Option<Arc<Mutex<Rc<Scene>>>>,
+    scene: Option<Arc<Mutex<Rc<RefCell<Scene>>>>>,
     debug_data: Option<DebugData>,
     perspective: Arc<Mutex<RenderPerspective>>,
     view: Arc<Mutex<RenderView>>
@@ -172,7 +173,7 @@ impl Renderer for BgfxRenderer {
         info!("Shutting down BgfxRenderer");
     }
 
-    fn set_scene(&mut self, scene: Rc<Scene>) {
+    fn set_scene(&mut self, scene: Rc<RefCell<Scene>>) {
 
         if self.scene.is_none() {
             error!("Scene is not initialized");
