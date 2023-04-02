@@ -41,43 +41,46 @@ pub trait SceneObject {
 
 pub struct ColoredSceneObject {
     pub vertices: Vec<ColoredVertex>,
-    pub indices: Vec<u16>
+    pub indices: Vec<u16>,
+    pub shaders: Shaders
 }
 
 pub struct ImageTexturedSceneObject {
     pub vertices: Vec<ImageTexturedVertex>,
     pub indices: Vec<u16>,
-    pub texture: DynamicImage
+    pub texture: DynamicImage,
+    pub shaders: Shaders
 }
 
 pub struct TgaTexturedSceneObject {
     pub vertices: Vec<TgaTexturedVertex>,
     pub indices: Vec<u16>,
     pub texture_color: DynamicImage,
-    pub texture_normal: DynamicImage
+    pub texture_normal: DynamicImage,
+    pub shaders: Shaders
 }
 
 // Implementations of new() with parameters for all SceneObject implementations
 impl ColoredSceneObject {
-    pub fn new(vertices: Vec<ColoredVertex>, indices: Vec<u16>) -> Self {
+    pub fn new(vertices: Vec<ColoredVertex>, indices: Vec<u16>, shaders: Shaders) -> Self {
         Self {
-            vertices, indices
+            vertices, indices, shaders
         }
     }
 }
 
 impl ImageTexturedSceneObject {
-    pub fn new(vertices: Vec<ImageTexturedVertex>, indices: Vec<u16>, texture: DynamicImage) -> Self {
+    pub fn new(vertices: Vec<ImageTexturedVertex>, indices: Vec<u16>, texture: DynamicImage, shaders: Shaders) -> Self {
         Self {
-            vertices, indices, texture
+            vertices, indices, texture, shaders
         }
     }
 }
 
 impl TgaTexturedSceneObject {
-    pub fn new(vertices: Vec<TgaTexturedVertex>, indices: Vec<u16>, texture_color: DynamicImage, texture_normal: DynamicImage) -> Self {
+    pub fn new(vertices: Vec<TgaTexturedVertex>, indices: Vec<u16>, texture_color: DynamicImage, texture_normal: DynamicImage, shaders: Shaders) -> Self {
         Self {
-            vertices, indices, texture_color, texture_normal
+            vertices, indices, texture_color, texture_normal, shaders
         }
     }
 }
@@ -131,20 +134,32 @@ mod tests {
     fn as_any() {
         let colored_object = ColoredSceneObject {
             vertices: Vec::new(),
-            indices: Vec::new()
+            indices: Vec::new(),
+            shaders: Shaders {
+                vertex: Vec::new(),
+                pixel: Vec::new()
+            }
         };
 
         let image_textured_object = ImageTexturedSceneObject {
             vertices: Vec::new(),
             indices: Vec::new(),
-            texture: DynamicImage::new_rgb8(50, 50)
+            texture: DynamicImage::new_rgb8(50, 50),
+            shaders: Shaders {
+                vertex: Vec::new(),
+                pixel: Vec::new()
+            }
         };
 
         let tga_textured_object = TgaTexturedSceneObject {
             vertices: Vec::new(),
             indices: Vec::new(),
             texture_color: DynamicImage::new_rgb8(50, 50),
-            texture_normal: DynamicImage::new_rgb8(50, 50)
+            texture_normal: DynamicImage::new_rgb8(50, 50),
+            shaders: Shaders {
+                vertex: Vec::new(),
+                pixel: Vec::new()
+            }
         };
 
         assert!(colored_object.as_any().is::<ColoredSceneObject>());

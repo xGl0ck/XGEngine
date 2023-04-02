@@ -2,8 +2,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use bgfx_rs::bgfx;
-use bgfx_rs::bgfx::{Init, PlatformData, ResetArgs};
-use glam::Vec3;
+use bgfx_rs::bgfx::{ClearFlags, Init, PlatformData, ResetArgs, SetViewClearArgs};
+use glam::{Mat4, Vec3};
 use log::{error, info, log, trace};
 use raw_window_handle::RawWindowHandle;
 use crate::scene::scene::Scene;
@@ -85,7 +85,8 @@ pub trait Renderer {
     fn do_render_cycle(&mut self);
     fn shutdown(&mut self);
     fn set_scene(&mut self, scene: Rc<RefCell<Scene>>);
-    fn set_debug_data(&mut self, debug_data: bool, data: DebugData);
+    fn set_debug_data(&mut self, data: DebugData);
+    fn do_debug(&mut self, debug: bool);
     fn clean_up(&mut self);
     fn update_surface_resolution(&mut self, width: u32, height: u32);
     fn update_perspective(&mut self, perspective: RenderPerspective);
@@ -140,16 +141,16 @@ impl Renderer for BgfxRenderer {
         // get platform data from raw windows handle
         match self.surface {
             RawWindowHandle::Win32(handle) => {
-                platform_data.nwh = handle.hwnd as *mut std::ffi::c_void;
+                platform_data.nwh = handle.hwnd
             },
             RawWindowHandle::AppKit(handle) => {
-                platform_data.nwh = handle.ns_view as *mut std::ffi::c_void;
+                platform_data.nwh = handle.ns_window
             },
             RawWindowHandle::Xlib(handle) => {
                 platform_data.nwh = handle.window as *mut std::ffi::c_void;
             },
             RawWindowHandle::Wayland(handle) => {
-                platform_data.nwh = handle.surface as *mut std::ffi::c_void;
+                platform_data.ndt = handle.surface
             },
             _ => {
                 error!("Unsupported platform");
@@ -165,6 +166,52 @@ impl Renderer for BgfxRenderer {
 
         info!("Rendering BgfxRenderer");
 
+        let mut debug = self.debug.lock().expect("Failed to lock debug mutex");
+        let mut perspective = self.perspective.lock().expect("Failed to lock perspective mutex");
+        let mut view = self.view.lock().expect("Failed to lock view mutex");
+
+        if *debug {
+            bgfx::set_debug(bgfx::DebugFlags::TEXT.bits());
+        } else {
+            bgfx::set_debug(bgfx::DebugFlags::NONE.bits());
+        }
+
+        bgfx::set_view_clear(
+            0,
+            ClearFlags::COLOR.bits() | ClearFlags::DEPTH.bits(),
+            SetViewClearArgs {
+                rgba: 0x103030ff,
+                ..Default::default()
+            },
+        );
+
+        bgfx::set_view_rect(0, 0, 0, self.width as u16, self.height as u16);
+        bgfx::touch(0);
+
+        let mut view_matrix = Mat4::look_at(view.eye, view.at, view.up);
+        let mut proj_matrix = Mat4::perspective(perspective.fov, perspective.width as f32 / perspective.height as f32, perspective.near, perspective.far);
+        let mut view_proj_matrix = proj_matrix * view_matrix;
+
+        bgfx::set_view_transform(0, view_matrix.as_ptr(), proj_matrix.as_ptr());
+        bgfx::set_view_transform(1, view_matrix.as_ptr(), proj_matrix.as_ptr());
+
+        if self.scene.is_none() {
+            error!("Scene is not initialized");
+            return;
+        }
+
+        let binding = self.scene.clone().unwrap();
+        let scene_guard = binding.lock().expect("Failed to lock scene mutex");
+        let scene = scene_guard.clone();
+
+        let mut scene_guard = scene.borrow_mut();
+        scene_guard.render(&view_proj_matrix);
+
+        if let Some(debug_data) = self.debug_data {
+            debug_data.render(&view_proj_matrix);
+        }
+
+        bgfx::frame();
 
 
     }
@@ -187,14 +234,27 @@ impl Renderer for BgfxRenderer {
 
     }
 
-    fn set_debug_data(&mut self, debug_data: bool, data: DebugData) {
-
-        let binding = self.scene.clone().unwrap();
+    fn set_debug_data(&mut self, data: DebugData) {
 
         let mut debug = self.debug.lock().expect("Failed to lock debug mutex");
         *debug = debug_data;
 
         self.debug_data = Some(data);
+    }
+
+    fn do_debug(&mut self, debug: bool) {
+
+        let mut debug_guard = self.debug.lock().expect("Failed to lock debug mutex");
+        *debug_guard = debug;
+
+        if debug {
+            info!("Debugging enabled");
+            bgfx::set_debug(bgfx::DebugFlags::TEXT.bits());
+        } else {
+            info!("Debugging disabled");
+            bgfx::set_debug(bgfx::DebugFlags::NONE.bits());
+        }
+
     }
 
     fn clean_up(&mut self) {
