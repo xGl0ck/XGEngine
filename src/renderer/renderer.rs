@@ -97,7 +97,7 @@ pub struct BgfxRenderer {
     width: u32,
     height: u32,
     old_size: (i32, i32),
-    surface: RawWindowHandle,
+    surface: Rc<RefCell<RawWindowHandle>>,
     debug: Arc<Mutex<bool>>,
     scene: Option<Arc<Mutex<Rc<RefCell<Scene>>>>>,
     debug_data: Option<DebugData>,
@@ -108,7 +108,7 @@ pub struct BgfxRenderer {
 impl BgfxRenderer {
 
     // constructor
-    pub fn new(width: u32, height: u32, surface: RawWindowHandle, debug: bool, perspective: RenderPerspective, view: RenderView) -> Self {
+    pub fn new(width: u32, height: u32, surface: Rc<RefCell<RawWindowHandle>>, debug: bool, perspective: RenderPerspective, view: RenderView) -> Self {
         Self {
             width,
             height,
@@ -139,7 +139,8 @@ impl Renderer for BgfxRenderer {
         let mut platform_data = PlatformData::new();
 
         // get platform data from raw windows handle
-        match self.surface {
+
+        match self.surface.borrow() {
             RawWindowHandle::Win32(handle) => {
                 platform_data.nwh = handle.hwnd
             },
@@ -206,13 +207,6 @@ impl Renderer for BgfxRenderer {
 
         let mut scene_guard = scene.borrow_mut();
         scene_guard.render(&view_proj_matrix);
-
-        if let Some(debug_data) = self.debug_data {
-            debug_data.render(&view_proj_matrix);
-        }
-
-        bgfx::frame();
-
 
     }
 

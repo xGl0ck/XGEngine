@@ -1,10 +1,12 @@
+use std::cell::RefCell;
 use std::rc::Rc;
 use event_bus::EventBus;
+use glam::Vec3;
 use glfw::{FAIL_ON_ERRORS, Glfw};
-use glfw::Key::N;
+use glfw::Key::{B, N};
 use log::info;
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
-use crate::renderer::renderer::{Renderer, RenderPerspective};
+use crate::renderer::renderer::{BgfxRenderer, Renderer, RenderPerspective, RenderView};
 use crate::scene::manager::{ChangeSceneEvent, SceneManager};
 
 mod core;
@@ -67,8 +69,6 @@ pub fn init(renderer: Box<dyn Renderer>) {
 
     set_renderer(renderer);
 
-
-
 }
 
 pub fn do_frame() {
@@ -100,9 +100,47 @@ pub fn run_windowed(width: u32, height: u32, title: &str, window_mode: glfw::Win
 
     glfw.window_hint(glfw::WindowHint::ClientApi(glfw::ClientApiHint::NoApi));
 
-    let mut raw_window_handle = window.raw_window_handle();
+    let mut raw_window_handle = Rc::new(RefCell::new(window.raw_window_handle()));
 
+    let render_perspective = RenderPerspective::new(
+        width,
+        height,
+        90.0,
+        0.2,
+        150.0
+    );
 
+    let view = RenderView::new(
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(0.0, 0.0, 0.0)
+    );
+
+    let mut renderer = Box::new(BgfxRenderer::new(
+        width,
+        height,
+        Rc::clone(&raw_window_handle),
+        false,
+        render_perspective,
+        view
+    ));
+
+    init(renderer);
+
+    while !window.should_close() {
+
+        unsafe {
+            RENDERER.unwrap().as_mut().do_render_cycle();
+        }
+
+    }
+
+    unsafe {
+        let renderer = RENDERER.unwrap().as_mut();
+
+        renderer.clean_up();
+        renderer.shutdown();
+    }
 }
 
 #[cfg(test)]
