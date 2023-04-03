@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use event_bus::EventResult;
 use glam::Vec3;
 use log::error;
-use crate::renderer::renderer::{Renderer, RenderView};
+use crate::renderer::renderer::{Renderer, RenderPerspective, RenderView};
 use crate::scene::manager::SceneManager;
 use crate::scene::scene::Scene;
 
@@ -49,11 +49,16 @@ impl EngineEnvironment {
 
     }
 
-    fn render_scene(&self, name: String) -> std::io::Result<(EventResult)> {
+    pub fn render_scene(&self, name: String) -> std::io::Result<(EventResult)> {
 
         self.scene_manager.render_scene(name)
 
     }
+
+    fn frame_render(&mut self) {
+        self.renderer.do_render_cycle();
+    }
+
 }
 
 // unit tests

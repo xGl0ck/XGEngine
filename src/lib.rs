@@ -1,11 +1,13 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use event_bus::EventBus;
+use event_bus::{EventBus, subscribe_event};
 use glam::Vec3;
 use glfw::{FAIL_ON_ERRORS, Glfw};
 use glfw::Key::{B, N};
 use log::info;
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
+use crate::environment::EngineEnvironment;
+use crate::events::{Action, ActionEvent};
 use crate::renderer::renderer::{BgfxRenderer, Renderer, RenderPerspective, RenderView};
 use crate::scene::manager::{ChangeSceneEvent, SceneManager};
 
@@ -32,16 +34,50 @@ mod scene {
     pub mod scene;
 }
 
+pub struct Engine {
+    renderer: Box<dyn Renderer>,
+    environment: EngineEnvironment
+}
 
-static mut RENDERER: Option<Box<dyn Renderer>> = None;
+static mut ENGINE: Option<Engine> = None;
 
-static mut ENGINE_ENVIRONMENT: Option<environment::EngineEnvironment> = None;
+impl Engine {
+
+    // constructor
+    pub fn new(renderer: Box<dyn Renderer>, environment: EngineEnvironment) -> Self {
+        Self {
+            renderer, environment
+        }
+    }
+
+    pub fn init(&mut self) {
+        self.renderer.init();
+    }
+
+    pub fn do_frame(&mut self) {
+        self.renderer.do_render_frame();
+    }
+
+    pub fn get_environment(&self) -> &EngineEnvironment {
+        &self.environment
+    }
+
+    fn update_resolution(&mut self, width: u32, height: u32) {
+        self.renderer.update_surface_resolution(width, height);
+    }
+
+}
 
 
-fn set_renderer(renderer: Box<dyn Renderer>) {
+
+fn create_engine(renderer: Box<dyn Renderer>) {
 
     unsafe {
-        RENDERER = Some(renderer);
+
+        let environment = EngineEnvironment::new();
+
+        ENGINE = Some(Engine::new(renderer, environment));
+
     }
 
 }
@@ -50,24 +86,48 @@ fn change_scene_handler(event: &mut ChangeSceneEvent) {
 
     unsafe {
 
-        if RENDERER.is_none() {
+        if ENGINE.is_none() {
             panic!("Cannot change event when RENDERER is not initialized");
         }
 
         info!("Changing scene");
 
-        RENDERER.as_mut().unwrap().set_scene(Rc::clone(&event.scene));
+        ENGINE.as_mut().unwrap().renderer.set_scene(Rc::clone(&event.scene));
 
     }
+}
+
+fn action_event_handler(event: &mut ActionEvent) {
+
+    match event.action {
+        Action::ChangeScene(ref scene) => {
+
+            unsafe {
+
+                ENGINE.as_mut().unwrap().environment.render_scene(scene.clone()).expect("TODO: panic message");
+
+            }
+
+        },
+
+        Action::UpdateResolution(width, height) => {
+            unsafe {
+                ENGINE.as_mut().unwrap().update_resolution(width, height);
+            }
+        }
+
+        _ => {}
+    }
+
 }
 
 pub fn init(renderer: Box<dyn Renderer>) {
 
     let mut event_bus = EventBus::new("engine");
 
-    event_bus.subscribe_event::<ChangeSceneEvent>(change_scene_handler);
+    subscribe_event!("engine", change_scene_handler);
 
-    set_renderer(renderer);
+    event_bus.subscribe_event::<ChangeSceneEvent>(change_scene_handler);
 
 }
 
@@ -126,6 +186,8 @@ pub fn run_windowed(width: u32, height: u32, title: &str, window_mode: glfw::Win
     ));
 
     init(renderer);
+
+
 
     while !window.should_close() {
 

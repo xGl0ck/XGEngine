@@ -10,8 +10,8 @@ pub enum InteractType {
 
 pub enum Action {
     ChangeScene(String),
-    RenderScene(*const Scene),
     ViewPortUpdate(Vec3, Vec3, Vec3, i32),
+    UpdateResolution(u32, u32),
     ClearRender()
 }
 
@@ -32,8 +32,9 @@ pub struct InteractEvent {
 }
 
 pub struct ActionEvent {
-    cancelled: bool,
-    action: Action
+    pub cancelled: bool,
+    pub action: Action,
+    reason: Option<String>
 }
 
 impl InitEvent {
@@ -105,6 +106,26 @@ impl Event for InitEvent {
     }
 }
 
+impl Event for ActionEvent {
+
+    fn cancellable(&self) -> bool {
+        true
+    }
+
+    fn cancelled(&self) -> bool {
+        self.cancelled
+    }
+
+    fn get_cancelled_reason(&self) -> Option<String> {
+        self.reason.clone()
+    }
+
+    fn set_cancelled(&mut self, _cancel: bool, reason: Option<String>) {
+        self.cancelled = _cancel;
+        self.reason = reason;
+    }
+
+}
 
 #[cfg(test)]
 mod tests {

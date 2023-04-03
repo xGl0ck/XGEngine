@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use bgfx_rs::bgfx;
-use bgfx_rs::bgfx::{ClearFlags, Init, PlatformData, ResetArgs, SetViewClearArgs};
+use bgfx_rs::bgfx::{ClearFlags, Init, PlatformData, ResetArgs, ResetFlags, SetViewClearArgs};
 use glam::{Mat4, Vec3};
 use log::{error, info, log, trace};
 use raw_window_handle::RawWindowHandle;
@@ -24,11 +24,11 @@ impl DebugLine {
 
 }
 
-pub struct DebugData {
+pub struct TextDebugData {
     lines: Vec<DebugLine>
 }
 
-impl DebugData {
+impl TextDebugData {
 
     // constructor
     pub fn new() -> Self {
@@ -79,13 +79,49 @@ impl RenderView {
 
 }
 
+pub struct RenderResolution {
+    pub width: u32,
+    pub height: u32
+}
+
+impl RenderResolution {
+
+    // constructor
+    pub fn new(width: u32, height: u32) -> Self {
+        Self {
+            width, height
+        }
+    }
+
+    fn update(&mut self, width: u32, height: u32) {
+        self.width = width;
+        self.height = height;
+    }
+
+    fn from(&mut self, other: &Self) {
+        self.width = other.width.clone();
+        self.height = other.height.clone();
+    }
+
+}
+
+impl PartialEq<Self> for RenderResolution {
+
+    fn eq(&self, other: &Self) -> bool {
+        self.width == other.width && self.height == other.height
+    }
+}
+
+impl Eq for RenderResolution {}
+
+
 pub trait Renderer {
 
     fn init(&mut self);
     fn do_render_cycle(&mut self);
     fn shutdown(&mut self);
     fn set_scene(&mut self, scene: Rc<RefCell<Scene>>);
-    fn set_debug_data(&mut self, data: DebugData);
+    fn set_debug_data(&mut self, data: TextDebugData);
     fn do_debug(&mut self, debug: bool);
     fn clean_up(&mut self);
     fn update_surface_resolution(&mut self, width: u32, height: u32);
@@ -94,13 +130,12 @@ pub trait Renderer {
 }
 
 pub struct BgfxRenderer {
-    width: u32,
-    height: u32,
-    old_size: (i32, i32),
+    resolution: RenderResolution,
+    old_resolution: RenderResolution,
     surface: Rc<RefCell<RawWindowHandle>>,
     debug: Arc<Mutex<bool>>,
     scene: Option<Arc<Mutex<Rc<RefCell<Scene>>>>>,
-    debug_data: Option<DebugData>,
+    debug_data: Option<TextDebugData>,
     perspective: Arc<Mutex<RenderPerspective>>,
     view: Arc<Mutex<RenderView>>
 }
@@ -110,13 +145,12 @@ impl BgfxRenderer {
     // constructor
     pub fn new(width: u32, height: u32, surface: Rc<RefCell<RawWindowHandle>>, debug: bool, perspective: RenderPerspective, view: RenderView) -> Self {
         Self {
-            width,
-            height,
+            resolution: RenderResolution::new(width, height),
+            old_resolution: RenderResolution::new(0, 0),
             surface,
             debug: Arc::new(Mutex::new(debug)),
             scene: None,
             debug_data: None,
-            old_size: (0, 0),
             perspective: Arc::new(Mutex::new(perspective)),
             view: Arc::new(Mutex::new(view))
         }
@@ -165,11 +199,14 @@ impl Renderer for BgfxRenderer {
 
     fn do_render_cycle(&mut self) {
 
-        info!("Rendering BgfxRenderer");
-
         let mut debug = self.debug.lock().expect("Failed to lock debug mutex");
         let mut perspective = self.perspective.lock().expect("Failed to lock perspective mutex");
         let mut view = self.view.lock().expect("Failed to lock view mutex");
+
+        if !self.resolution.eq(&self.old_resolution) {
+            self.old_resolution.from(&self.resolution);
+            bgfx::reset(self.resolution.width, self.resolution.height, ResetArgs::default());
+        }
 
         if *debug {
             bgfx::set_debug(bgfx::DebugFlags::TEXT.bits());
@@ -228,7 +265,7 @@ impl Renderer for BgfxRenderer {
 
     }
 
-    fn set_debug_data(&mut self, data: DebugData) {
+    fn set_debug_data(&mut self, data: TextDebugData) {
 
         let mut debug = self.debug.lock().expect("Failed to lock debug mutex");
         *debug = debug_data;
@@ -256,9 +293,8 @@ impl Renderer for BgfxRenderer {
     }
 
     fn update_surface_resolution(&mut self, width: u32, height: u32) {
-        self.width = width;
-        self.height = height;
-        bgfx::reset(self.width as _, self.height as _, ResetArgs::default());
+        self.old_resolution.from(&self.resolution);
+        self.resolution.update(width, height);
     }
 
     fn update_perspective(&mut self, perspective: RenderPerspective) {
