@@ -1,8 +1,10 @@
+use std::borrow::BorrowMut;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use bgfx_rs::bgfx;
-use bgfx_rs::bgfx::{AddArgs, Attrib, AttribType, ClearFlags, Init, Memory, PlatformData, ResetArgs, ResetFlags, SetViewClearArgs, StateCullFlags, StateDepthTestFlags, StateWriteFlags, VertexLayoutBuilder};
+use bgfx_rs::bgfx::{AddArgs, Attrib, AttribType, BufferFlags, ClearFlags, Init, Memory, PlatformData, Program, ResetArgs, ResetFlags, SetViewClearArgs, StateCullFlags, StateDepthTestFlags, StateWriteFlags, SubmitArgs, VertexLayoutBuilder};
 use bgfx_rs::bgfx::RendererType::{Count, Metal};
 use glam::{Mat4, Vec3};
 use log::{error, info, log, trace};
@@ -138,7 +140,8 @@ pub struct BgfxRenderer {
     debug: Arc<Mutex<bool>>,
     scene: Option<Arc<Mutex<Rc<RefCell<Scene>>>>>,
     debug_data: Option<TextDebugData>,
-    perspective: Arc<Mutex<RenderPerspective>>
+    perspective: Arc<Mutex<RenderPerspective>>,
+    shaders: HashMap<ObjectTypes, Program>
 }
 
 impl BgfxRenderer {
@@ -152,8 +155,20 @@ impl BgfxRenderer {
             debug: Arc::new(Mutex::new(debug)),
             scene: None,
             debug_data: None,
-            perspective: Arc::new(Mutex::new(perspective))
+            perspective: Arc::new(Mutex::new(perspective)),
+            shaders: HashMap::new()
         }
+    }
+
+    fn add_shader(&mut self, object_type: ObjectTypes, vertex_shader: Vec<u8>, pixel_shader: Vec<u8>) {
+        let vs_data = Memory::copy(&vertex_shader);
+        let ps_data = Memory::copy(&pixel_shader);
+
+        let vs_shader = bgfx::create_shader(&vs_data);
+        let ps_shader = bgfx::create_shader(&ps_data);
+
+        let program = bgfx::create_program(&vs_shader, &ps_shader, false);
+
     }
 
 }
@@ -266,13 +281,24 @@ impl Renderer for BgfxRenderer {
 
                     let colored = object.as_any().downcast_ref::<ColoredSceneObject>().unwrap();
 
-                    let layout = VertexLayoutBuilder::new();
+                    let vertex_buffer = unsafe {
 
-                    layout
-                        .begin(Count)
-                        .add(Attrib::Position, 3, AttribType::Float, AddArgs::default())
-                        .add(Attrib::Color0, 4, AttribType::Uint8, AddArgs { normalized: true, as_int: false })
-                        .end();
+                        let layout = VertexLayoutBuilder::new();
+
+                        layout
+                            .begin(Count)
+                            .add(Attrib::Position, 3, AttribType::Float, AddArgs::default())
+                            .add(Attrib::Color0, 4, AttribType::Uint8, AddArgs { normalized: true, as_int: false })
+                            .end();
+
+                        let memory = Memory::reference(&colored.vertices);
+                        bgfx::create_vertex_buffer(&memory, &layout, BufferFlags::empty().bits())
+                    };
+
+                    let index_buffer = unsafe {
+                        let memory = Memory::reference(&colored.indices);
+                        bgfx::create_index_buffer(&memory, BufferFlags::empty().bits())
+                    };
 
                     let state = (StateWriteFlags::R
                         | StateWriteFlags::G
@@ -283,6 +309,15 @@ impl Renderer for BgfxRenderer {
                         | StateDepthTestFlags::LESS.bits()
                         | StateCullFlags::CW.bits();
 
+                    let transform = Mat4::from_translation(colored.coordinates.clone());
+
+                    bgfx::set_transform(&transform.to_cols_array(), 1);
+                    bgfx::set_vertex_buffer(0, &vertex_buffer, 0, std::u32::MAX);
+                    bgfx::set_index_buffer(&index_buffer, 0, std::u32::MAX);
+
+                    bgfx::set_state(state, 0);
+
+                    bgfx::submit(0, self.get_program(), SubmitArgs::default());
 
                 }
 

@@ -42,14 +42,16 @@ pub trait SceneObject {
 pub struct ColoredSceneObject {
     pub vertices: Vec<ColoredVertex>,
     pub indices: Vec<u16>,
-    pub shaders: Shaders
+    pub shaders: Shaders,
+    pub coordinates: Vec3
 }
 
 pub struct ImageTexturedSceneObject {
     pub vertices: Vec<ImageTexturedVertex>,
     pub indices: Vec<u16>,
     pub texture: DynamicImage,
-    pub shaders: Shaders
+    pub shaders: Shaders,
+    pub coordinates: Vec3
 }
 
 pub struct TgaTexturedSceneObject {
@@ -57,30 +59,31 @@ pub struct TgaTexturedSceneObject {
     pub indices: Vec<u16>,
     pub texture_color: DynamicImage,
     pub texture_normal: DynamicImage,
-    pub shaders: Shaders
+    pub shaders: Shaders,
+    pub coordinates: Vec3
 }
 
 // Implementations of new() with parameters for all SceneObject implementations
 impl ColoredSceneObject {
-    pub fn new(vertices: Vec<ColoredVertex>, indices: Vec<u16>, shaders: Shaders) -> Self {
+    pub fn new(vertices: Vec<ColoredVertex>, indices: Vec<u16>, shaders: Shaders, coordinates: Vec3) -> Self {
         Self {
-            vertices, indices, shaders
+            vertices, indices, shaders, coordinates
         }
     }
 }
 
 impl ImageTexturedSceneObject {
-    pub fn new(vertices: Vec<ImageTexturedVertex>, indices: Vec<u16>, texture: DynamicImage, shaders: Shaders) -> Self {
+    pub fn new(vertices: Vec<ImageTexturedVertex>, indices: Vec<u16>, texture: DynamicImage, shaders: Shaders, coordinates: Vec3) -> Self {
         Self {
-            vertices, indices, texture, shaders
+            vertices, indices, texture, shaders, coordinates
         }
     }
 }
 
 impl TgaTexturedSceneObject {
-    pub fn new(vertices: Vec<TgaTexturedVertex>, indices: Vec<u16>, texture_color: DynamicImage, texture_normal: DynamicImage, shaders: Shaders) -> Self {
+    pub fn new(vertices: Vec<TgaTexturedVertex>, indices: Vec<u16>, texture_color: DynamicImage, texture_normal: DynamicImage, shaders: Shaders, coordinates: Vec3) -> Self {
         Self {
-            vertices, indices, texture_color, texture_normal, shaders
+            vertices, indices, texture_color, texture_normal, shaders, coordinates
         }
     }
 }
@@ -127,6 +130,7 @@ impl SceneObject for TgaTexturedSceneObject {
 #[cfg(test)]
 mod tests {
     use std::any::Any;
+    use glfw::Key::V;
     use super::*;
 
     // as_any() test for all SceneObject implementations
@@ -138,7 +142,8 @@ mod tests {
             shaders: Shaders {
                 vertex: Vec::new(),
                 pixel: Vec::new()
-            }
+            },
+            coordinates: Vec3::new(0.0, 0.0, 0.0)
         };
 
         let image_textured_object = ImageTexturedSceneObject {
@@ -148,7 +153,8 @@ mod tests {
             shaders: Shaders {
                 vertex: Vec::new(),
                 pixel: Vec::new()
-            }
+            },
+            coordinates: Vec3::new(0.0, 0.0, 0.0)
         };
 
         let tga_textured_object = TgaTexturedSceneObject {
@@ -159,7 +165,8 @@ mod tests {
             shaders: Shaders {
                 vertex: Vec::new(),
                 pixel: Vec::new()
-            }
+            },
+            coordinates: Vec3::new(0.0, 0.0, 0.0)
         };
 
         assert!(colored_object.as_any().is::<ColoredSceneObject>());
