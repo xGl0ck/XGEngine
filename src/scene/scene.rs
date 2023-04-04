@@ -27,7 +27,7 @@ pub struct Scene {
     pub name: String,
     chunk_map: HashMap<IVec2, Rc<Chunk>>,
     chunk_corners: Vec<ChunkCorners>,
-    camera: RenderView
+    pub camera: RenderView
 }
 
 impl Scene {
@@ -36,6 +36,14 @@ impl Scene {
         Self {
             name, chunk_map: HashMap::new(), chunk_corners: Vec::new(), camera
         }
+    }
+
+    pub fn get_current_chunk(&self) -> std::io::Result<Rc<Chunk>> {
+
+        let coordinates = Vec2::new(self.camera.at.x, self.camera.at.z);
+
+        return self.get_chunk(coordinates);
+
     }
 
     pub fn get_chunk(&self, coordinates: Vec2) -> std::io::Result<Rc<Chunk>> {

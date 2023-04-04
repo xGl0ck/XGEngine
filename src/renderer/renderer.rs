@@ -2,10 +2,12 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use bgfx_rs::bgfx;
-use bgfx_rs::bgfx::{ClearFlags, Init, PlatformData, ResetArgs, ResetFlags, SetViewClearArgs};
+use bgfx_rs::bgfx::{AddArgs, Attrib, AttribType, ClearFlags, Init, Memory, PlatformData, ResetArgs, ResetFlags, SetViewClearArgs, StateCullFlags, StateDepthTestFlags, StateWriteFlags, VertexLayoutBuilder};
+use bgfx_rs::bgfx::RendererType::{Count, Metal};
 use glam::{Mat4, Vec3};
 use log::{error, info, log, trace};
 use raw_window_handle::RawWindowHandle;
+use crate::scene::object::{ColoredSceneObject, ObjectTypes};
 use crate::scene::scene::Scene;
 
 pub struct DebugLine {
@@ -136,14 +138,13 @@ pub struct BgfxRenderer {
     debug: Arc<Mutex<bool>>,
     scene: Option<Arc<Mutex<Rc<RefCell<Scene>>>>>,
     debug_data: Option<TextDebugData>,
-    perspective: Arc<Mutex<RenderPerspective>>,
-    view: Arc<Mutex<RenderView>>
+    perspective: Arc<Mutex<RenderPerspective>>
 }
 
 impl BgfxRenderer {
 
     // constructor
-    pub fn new(width: u32, height: u32, surface: Rc<RefCell<RawWindowHandle>>, debug: bool, perspective: RenderPerspective, view: RenderView) -> Self {
+    pub fn new(width: u32, height: u32, surface: Rc<RefCell<RawWindowHandle>>, debug: bool, perspective: RenderPerspective) -> Self {
         Self {
             resolution: RenderResolution::new(width, height),
             old_resolution: RenderResolution::new(0, 0),
@@ -151,8 +152,7 @@ impl BgfxRenderer {
             debug: Arc::new(Mutex::new(debug)),
             scene: None,
             debug_data: None,
-            perspective: Arc::new(Mutex::new(perspective)),
-            view: Arc::new(Mutex::new(view))
+            perspective: Arc::new(Mutex::new(perspective))
         }
     }
 
@@ -201,7 +201,6 @@ impl Renderer for BgfxRenderer {
 
         let mut debug = self.debug.lock().expect("Failed to lock debug mutex");
         let mut perspective = self.perspective.lock().expect("Failed to lock perspective mutex");
-        let mut view = self.view.lock().expect("Failed to lock view mutex");
 
         if !self.resolution.eq(&self.old_resolution) {
             self.old_resolution.from(&self.resolution);
@@ -224,26 +223,77 @@ impl Renderer for BgfxRenderer {
         );
 
         bgfx::set_view_rect(0, 0, 0, self.width as u16, self.height as u16);
-        bgfx::touch(0);
-
-        let mut view_matrix = Mat4::look_at(view.eye, view.at, view.up);
-        let mut proj_matrix = Mat4::perspective(perspective.fov, perspective.width as f32 / perspective.height as f32, perspective.near, perspective.far);
-        let mut view_proj_matrix = proj_matrix * view_matrix;
-
-        bgfx::set_view_transform(0, view_matrix.as_ptr(), proj_matrix.as_ptr());
-        bgfx::set_view_transform(1, view_matrix.as_ptr(), proj_matrix.as_ptr());
 
         if self.scene.is_none() {
             error!("Scene is not initialized");
             return;
         }
 
+        let scene = match &self.scene {
+            Some(scene) => scene,
+            None => {
+                error!("Scene is not initialized");
+                return;
+            }
+        };
+
+        let scene_guard = scene.lock().expect("Failed to lock scene mutex");
+
+        let view = scene_guard.borrow();
+
+        let mut view_matrix = Mat4::look_at_lh(view.camera.eye.clone(), view.camera.up.clone(), view.camera.at.clone());
+        let mut proj_matrix = Mat4::perspective_lh(perspective.fov, perspective.width as f32 / perspective.height as f32, perspective.near, perspective.far);
+
+        bgfx::set_view_transform(0, &view_matrix.to_cols_array(), &proj_matrix.to_cols_array());
+
         let binding = self.scene.clone().unwrap();
         let scene_guard = binding.lock().expect("Failed to lock scene mutex");
-        let scene = scene_guard.clone();
+        let scene = scene_guard.borrow();
 
-        let mut scene_guard = scene.borrow_mut();
-        scene_guard.render(&view_proj_matrix);
+        let chunk = match scene.get_current_chunk() {
+            Ok(chunk) => chunk,
+            Err(e) => {
+                error!("Failed to get current chunk: {}", e);
+                return;
+            }
+        };
+
+        for object in chunk.objects.borrow_mut().iter() {
+
+            match object.get_type() {
+
+                ObjectTypes::Colored => {
+
+                    let colored = object.as_any().downcast_ref::<ColoredSceneObject>().unwrap();
+
+                    let layout = VertexLayoutBuilder::new();
+
+                    layout
+                        .begin(Count)
+                        .add(Attrib::Position, 3, AttribType::Float, AddArgs::default())
+                        .add(Attrib::Color0, 4, AttribType::Uint8, AddArgs { normalized: true, as_int: false })
+                        .end();
+
+                    let state = (StateWriteFlags::R
+                        | StateWriteFlags::G
+                        | StateWriteFlags::B
+                        | StateWriteFlags::A
+                        | StateWriteFlags::Z)
+                        .bits()
+                        | StateDepthTestFlags::LESS.bits()
+                        | StateCullFlags::CW.bits();
+
+
+                }
+
+                _ => {}
+
+            }
+
+        }
+
+        bgfx::touch(0);
+
 
     }
 

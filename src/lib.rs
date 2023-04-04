@@ -135,11 +135,11 @@ pub fn do_frame() {
 
     unsafe {
 
-        if RENDERER.is_none() {
-            panic!("Cannot do frame when RENDERER is not initialized");
+        if ENGINE.as_mut().unwrap().is_none() {
+            panic!("Cannot do frame when ENGINE is not initialized");
         }
 
-        RENDERER.as_mut().unwrap().do_render_cycle();
+        ENGINE.as_mut().unwrap().renderer.do_render_cycle();
 
     }
 
@@ -192,7 +192,7 @@ pub fn run_windowed(width: u32, height: u32, title: &str, window_mode: glfw::Win
     while !window.should_close() {
 
         unsafe {
-            RENDERER.unwrap().as_mut().do_render_cycle();
+            ENGINE.as_mut().unwrap().renderer.do_render_cycle();
         }
 
     }
