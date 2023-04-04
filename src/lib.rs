@@ -170,19 +170,12 @@ pub fn run_windowed(width: u32, height: u32, title: &str, window_mode: glfw::Win
         150.0
     );
 
-    let view = RenderView::new(
-        Vec3::new(0.0, 0.0, 0.0),
-        Vec3::new(0.0, 0.0, 0.0),
-        Vec3::new(0.0, 0.0, 0.0)
-    );
-
     let mut renderer = Box::new(BgfxRenderer::new(
         width,
         height,
         Rc::clone(&raw_window_handle),
         false,
-        render_perspective,
-        view
+        render_perspective
     ));
 
     init(renderer);
