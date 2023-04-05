@@ -37,10 +37,36 @@ pub struct ActionEvent {
     reason: Option<String>
 }
 
+impl ActionEvent {
+
+    // constructor
+    pub fn new(action: Action) -> Self {
+        Self {
+            cancelled: false,
+            action,
+            reason: None
+        }
+    }
+
+}
+
 impl InitEvent {
 
     pub fn new() -> Self {
         Self {
+            cancelled: false,
+            reason: None
+        }
+    }
+
+}
+
+// interact event constructor
+impl InteractEvent {
+
+    pub fn new(interact: InteractType) -> Self {
+        Self {
+            interact,
             cancelled: false,
             reason: None
         }

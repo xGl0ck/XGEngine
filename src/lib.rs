@@ -1,19 +1,23 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use event_bus::{EventBus, subscribe_event};
+use event_bus::{dispatch_event, EventBus, subscribe_event};
 use glam::Vec3;
 use glfw::{FAIL_ON_ERRORS, Glfw};
 use glfw::Key::{B, N};
 use log::info;
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 use crate::environment::EngineEnvironment;
-use crate::events::{Action, ActionEvent};
+use crate::events::{Action, ActionEvent, InteractEvent, InteractType};
 use crate::renderer::renderer::{BgfxRenderer, Renderer, RenderPerspective, RenderView};
 use crate::scene::manager::{ChangeSceneEvent, SceneManager};
+use crate::scene::scene::Scene;
+use crate::shader::{ShaderContainer, ShaderManager};
 
 mod core;
 mod events;
 mod environment;
+mod shader;
+mod windowed;
 
 mod messaging {
 //    pub mod controller;
@@ -36,7 +40,9 @@ mod scene {
 
 pub struct Engine {
     renderer: Box<dyn Renderer>,
-    environment: EngineEnvironment
+    environment: EngineEnvironment,
+    shader_manager: ShaderManager,
+    bus: EventBus
 }
 
 static mut ENGINE: Option<Engine> = None;
@@ -46,7 +52,9 @@ impl Engine {
     // constructor
     pub fn new(renderer: Box<dyn Renderer>, environment: EngineEnvironment) -> Self {
         Self {
-            renderer, environment
+            renderer, environment,
+            shader_manager: ShaderManager::new(),
+            bus: EventBus::new("engine")
         }
     }
 
@@ -55,7 +63,7 @@ impl Engine {
     }
 
     pub fn do_frame(&mut self) {
-        self.renderer.do_render_frame();
+        self.renderer.do_render_cycle();
     }
 
     pub fn get_environment(&self) -> &EngineEnvironment {
@@ -82,6 +90,86 @@ fn create_engine(renderer: Box<dyn Renderer>) {
 
 }
 
+// create scene in engine environment
+pub fn create_scene(name: String) {
+
+    unsafe {
+
+        if ENGINE.is_none() {
+            panic!("Cannot create scene when ENGINE is not initialized");
+        }
+
+        ENGINE.as_mut().unwrap().environment.create_scene(name);
+
+    }
+
+}
+
+// get scene
+pub fn get_scene(name: String) -> std::io::Result<Rc<RefCell<Scene>>> {
+
+    unsafe {
+
+        if ENGINE.is_none() {
+            panic!("Cannot get scene when ENGINE is not initialized");
+        }
+
+        ENGINE.as_mut().unwrap().environment.get_scene(name)
+
+    }
+
+}
+
+// current scene
+pub fn current_scene() -> std::io::Result<Rc<RefCell<Scene>>> {
+
+    unsafe {
+
+        if ENGINE.is_none() {
+            panic!("Cannot get scene when ENGINE is not initialized");
+        }
+
+        Ok(Rc::clone(&ENGINE.as_mut().unwrap().environment.current_scene))
+
+    }
+
+}
+
+// add shader
+pub fn add_shader(shader: Box<dyn ShaderContainer>) -> i32 {
+
+    unsafe {
+
+        if ENGINE.is_none() {
+            panic!("Cannot add shader when ENGINE is not initialized");
+        }
+
+        ENGINE.as_mut().unwrap().shader_manager.add_shader(shader)
+    }
+
+}
+
+// get shader
+pub fn get_shader(id: i32) -> std::io::Result<Rc<RefCell<Box<dyn ShaderContainer>>>> {
+
+    unsafe {
+
+        if ENGINE.is_none() {
+            panic!("Cannot get shader when ENGINE is not initialized");
+        }
+
+        let shader = ENGINE.as_mut().unwrap().shader_manager.get_shader(id);
+
+        if shader.is_none() {
+            return Err(std::io::Error::new(std::io::ErrorKind::Other, "Shader not found"));
+        }
+
+        Ok(shader.unwrap())
+
+    }
+
+}
+
 fn change_scene_handler(event: &mut ChangeSceneEvent) {
 
     unsafe {
@@ -100,6 +188,7 @@ fn change_scene_handler(event: &mut ChangeSceneEvent) {
 fn action_event_handler(event: &mut ActionEvent) {
 
     match event.action {
+
         Action::ChangeScene(ref scene) => {
 
             unsafe {
@@ -123,11 +212,12 @@ fn action_event_handler(event: &mut ActionEvent) {
 
 pub fn init(renderer: Box<dyn Renderer>) {
 
-    let mut event_bus = EventBus::new("engine");
+    unsafe {
+        ENGINE = Some(Engine::new(renderer, EngineEnvironment::new()));
+    }
 
     subscribe_event!("engine", change_scene_handler);
-
-    event_bus.subscribe_event::<ChangeSceneEvent>(change_scene_handler);
+    subscribe_event!("engine", action_event_handler);
 
 }
 
@@ -135,7 +225,7 @@ pub fn do_frame() {
 
     unsafe {
 
-        if ENGINE.as_mut().unwrap().is_none() {
+        if ENGINE.as_mut().is_none() {
             panic!("Cannot do frame when ENGINE is not initialized");
         }
 
@@ -145,60 +235,9 @@ pub fn do_frame() {
 
 }
 
-pub fn run_windowed(width: u32, height: u32, title: &str, window_mode: glfw::WindowMode, disable_cursor: bool, fps: i32) {
-
-    let mut glfw = glfw::init(FAIL_ON_ERRORS).unwrap();
-
-    let (mut window, events) = glfw.create_window(width, height, title, window_mode).expect("Failed to create GLFW window.");
-
-    window.set_key_polling(true);
-    window.set_cursor_pos_polling(true);
-
-    if disable_cursor {
-        window.set_cursor_mode(glfw::CursorMode::Disabled);
-    }
-
-    glfw.window_hint(glfw::WindowHint::ClientApi(glfw::ClientApiHint::NoApi));
-
-    let mut raw_window_handle = Rc::new(RefCell::new(window.raw_window_handle()));
-
-    let render_perspective = RenderPerspective::new(
-        width,
-        height,
-        90.0,
-        0.2,
-        150.0
-    );
-
-    let mut renderer = Box::new(BgfxRenderer::new(
-        width,
-        height,
-        Rc::clone(&raw_window_handle),
-        false,
-        render_perspective
-    ));
-
-    init(renderer);
-
-
-
-    while !window.should_close() {
-
-        unsafe {
-            ENGINE.as_mut().unwrap().renderer.do_render_cycle();
-        }
-
-    }
-
-    unsafe {
-        let renderer = RENDERER.unwrap().as_mut();
-
-        renderer.clean_up();
-        renderer.shutdown();
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::*;
+
 }

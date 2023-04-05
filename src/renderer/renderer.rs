@@ -1,6 +1,7 @@
 use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use bgfx_rs::bgfx;
@@ -11,6 +12,7 @@ use log::{error, info, log, trace};
 use raw_window_handle::RawWindowHandle;
 use crate::scene::object::{ColoredSceneObject, ObjectTypes};
 use crate::scene::scene::Scene;
+use crate::shader::{BgfxShaderContainer, ShaderContainer};
 
 pub struct DebugLine {
     key: String,
@@ -160,17 +162,6 @@ impl BgfxRenderer {
         }
     }
 
-    fn add_shader(&mut self, object_type: ObjectTypes, vertex_shader: Vec<u8>, pixel_shader: Vec<u8>) {
-        let vs_data = Memory::copy(&vertex_shader);
-        let ps_data = Memory::copy(&pixel_shader);
-
-        let vs_shader = bgfx::create_shader(&vs_data);
-        let ps_shader = bgfx::create_shader(&ps_data);
-
-        let program = bgfx::create_program(&vs_shader, &ps_shader, false);
-
-    }
-
 }
 
 impl Renderer for BgfxRenderer {
@@ -180,16 +171,16 @@ impl Renderer for BgfxRenderer {
         info!("Initializing BgfxRenderer");
 
         let mut init = Init::new();
-        init.type_r = bgfx::RendererType::Count;
-        init.resolution.width = self.width;
-        init.resolution.height = self.height;
-        init.resolution.reset = bgfx::ResetFlags::VSYNC.bits();
+        init.type_r = Count;
+        init.resolution.width = self.resolution.width;
+        init.resolution.height = self.resolution.height;
+        init.resolution.reset = ResetFlags::NONE.bits();
 
         let mut platform_data = PlatformData::new();
 
         // get platform data from raw windows handle
 
-        match self.surface.borrow() {
+        match self.surface.borrow().deref() {
             RawWindowHandle::Win32(handle) => {
                 platform_data.nwh = handle.hwnd
             },
@@ -210,6 +201,9 @@ impl Renderer for BgfxRenderer {
 
         init.platform_data = platform_data;
         bgfx::init(&init);
+
+        bgfx::set_debug(bgfx::DebugFlags::NONE.bits());
+        self.clean_up();
     }
 
     fn do_render_cycle(&mut self) {
@@ -222,22 +216,8 @@ impl Renderer for BgfxRenderer {
             bgfx::reset(self.resolution.width, self.resolution.height, ResetArgs::default());
         }
 
-        if *debug {
-            bgfx::set_debug(bgfx::DebugFlags::TEXT.bits());
-        } else {
-            bgfx::set_debug(bgfx::DebugFlags::NONE.bits());
-        }
-
-        bgfx::set_view_clear(
-            0,
-            ClearFlags::COLOR.bits() | ClearFlags::DEPTH.bits(),
-            SetViewClearArgs {
-                rgba: 0x103030ff,
-                ..Default::default()
-            },
-        );
-
-        bgfx::set_view_rect(0, 0, 0, self.width as u16, self.height as u16);
+        bgfx::dbg_text_clear(bgfx::DbgTextClearArgs::default());
+        bgfx::set_view_rect(0, 0, 0, self.resolution.width.clone() as u16, self.resolution.height.clone() as u16);
 
         if self.scene.is_none() {
             error!("Scene is not initialized");
@@ -254,18 +234,14 @@ impl Renderer for BgfxRenderer {
 
         let scene_guard = scene.lock().expect("Failed to lock scene mutex");
 
-        let view = scene_guard.borrow();
+        let scene_reference = scene_guard.borrow();
 
-        let mut view_matrix = Mat4::look_at_lh(view.camera.eye.clone(), view.camera.up.clone(), view.camera.at.clone());
+        let mut view_matrix = Mat4::look_at_lh(scene_reference.camera.eye.clone(), scene_reference.camera.up.clone(), scene_reference.camera.at.clone());
         let mut proj_matrix = Mat4::perspective_lh(perspective.fov, perspective.width as f32 / perspective.height as f32, perspective.near, perspective.far);
 
         bgfx::set_view_transform(0, &view_matrix.to_cols_array(), &proj_matrix.to_cols_array());
 
-        let binding = self.scene.clone().unwrap();
-        let scene_guard = binding.lock().expect("Failed to lock scene mutex");
-        let scene = scene_guard.borrow();
-
-        let chunk = match scene.get_current_chunk() {
+        let chunk = match scene_reference.get_current_chunk() {
             Ok(chunk) => chunk,
             Err(e) => {
                 error!("Failed to get current chunk: {}", e);
@@ -273,13 +249,13 @@ impl Renderer for BgfxRenderer {
             }
         };
 
-        for object in chunk.objects.borrow_mut().iter() {
+        for object in chunk.objects.borrow_mut().iter_mut() {
 
             match object.get_type() {
 
                 ObjectTypes::Colored => {
 
-                    let colored = object.as_any().downcast_ref::<ColoredSceneObject>().unwrap();
+                    let mut colored = object.as_any_mut().downcast_mut::<ColoredSceneObject>().unwrap();
 
                     let vertex_buffer = unsafe {
 
@@ -317,7 +293,19 @@ impl Renderer for BgfxRenderer {
 
                     bgfx::set_state(state, 0);
 
-                    bgfx::submit(0, self.get_program(), SubmitArgs::default());
+                    let mut shaders_reference = Rc::clone(&colored.shaders);
+
+                    let mut shaders_deref = shaders_reference.deref().borrow_mut();
+
+                    let shaders = shaders_deref.as_any_mut().downcast_mut::<BgfxShaderContainer>().unwrap();
+
+                    if !shaders.loaded() {
+                        shaders.load();
+                    }
+
+                    let program = Rc::clone(&shaders.program.clone().unwrap());
+
+                    bgfx::submit(0, program.as_ref(), SubmitArgs::default());
 
                 }
 
@@ -328,12 +316,13 @@ impl Renderer for BgfxRenderer {
         }
 
         bgfx::touch(0);
-
+        bgfx::frame(false);
 
     }
 
     fn shutdown(&mut self) {
         info!("Shutting down BgfxRenderer");
+        bgfx::shutdown();
     }
 
     fn set_scene(&mut self, scene: Rc<RefCell<Scene>>) {
@@ -351,9 +340,6 @@ impl Renderer for BgfxRenderer {
     }
 
     fn set_debug_data(&mut self, data: TextDebugData) {
-
-        let mut debug = self.debug.lock().expect("Failed to lock debug mutex");
-        *debug = debug_data;
 
         self.debug_data = Some(data);
     }
@@ -375,6 +361,14 @@ impl Renderer for BgfxRenderer {
 
     fn clean_up(&mut self) {
         info!("Cleaning up BgfxRenderer");
+        bgfx::set_view_clear(
+            0,
+            ClearFlags::COLOR.bits() | ClearFlags::DEPTH.bits(),
+            SetViewClearArgs {
+                rgba: 0x103030ff,
+                ..Default::default()
+            },
+        );
     }
 
     fn update_surface_resolution(&mut self, width: u32, height: u32) {

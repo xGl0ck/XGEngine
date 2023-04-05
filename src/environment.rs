@@ -27,7 +27,7 @@ impl EngineEnvironment {
         }
     }
 
-    fn create_scene(&mut self, name: String) {
+    pub fn create_scene(&mut self, name: String) {
 
         let scene = Scene::new(name, RenderView::new(Vec3::new(0.0,0.0,0.0), Vec3::new(0.0,0.0,0.0), Vec3::new(0.0,0.0,0.0)));
 
@@ -35,7 +35,7 @@ impl EngineEnvironment {
 
     }
 
-    fn get_scene(&self, name: String) -> std::io::Result<Rc<RefCell<Scene>>> {
+    pub fn get_scene(&self, name: String) -> std::io::Result<Rc<RefCell<Scene>>> {
 
         let scene = self.scene_manager.get_scene(name);
 
@@ -54,11 +54,6 @@ impl EngineEnvironment {
         self.scene_manager.render_scene(name)
 
     }
-
-    fn frame_render(&mut self) {
-        self.renderer.do_render_cycle();
-    }
-
 }
 
 // unit tests
