@@ -61,6 +61,8 @@ impl ShaderContainer for BgfxShaderContainer {
         // create program with bgfx
         self.program = Some(Rc::new(unsafe { bgfx::create_program(&self.vertex.clone().unwrap(), &self.pixel.clone().unwrap(), true) }));
 
+        self.loaded = true;
+
     }
 
     fn as_any(&self) -> &dyn Any {

@@ -306,12 +306,26 @@ impl Renderer for BgfxRenderer {
                     let program = Rc::clone(&shaders.program.clone().unwrap());
 
                     bgfx::submit(0, program.as_ref(), SubmitArgs::default());
-
+                    println!("submiting");
                 }
 
                 _ => {}
 
             }
+
+        }
+
+        if *debug {
+
+            let debug_data = self.debug_data.as_ref().unwrap();
+
+            for i in 0..debug_data.lines.len() {
+                let line = debug_data.lines.get(i).unwrap();
+
+                bgfx::dbg_text(0, i as u16, 0x0f, format!("{}: {}", line.key, line.value).as_str());
+
+            }
+
 
         }
 
@@ -328,7 +342,8 @@ impl Renderer for BgfxRenderer {
     fn set_scene(&mut self, scene: Rc<RefCell<Scene>>) {
 
         if self.scene.is_none() {
-            error!("Scene is not initialized");
+
+            self.scene = Some(Arc::new(Mutex::new(Rc::clone(&scene))));
             return;
         }
 

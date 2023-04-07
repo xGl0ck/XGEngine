@@ -14,10 +14,10 @@ use crate::scene::scene::Scene;
 use crate::shader::{ShaderContainer, ShaderManager};
 
 mod core;
-mod events;
+pub mod events;
 mod environment;
-mod shader;
-mod windowed;
+pub mod shader;
+pub mod windowed;
 
 mod messaging {
 //    pub mod controller;
@@ -25,13 +25,13 @@ mod messaging {
 //    pub mod message;
 }
 
-mod renderer {
+pub mod renderer {
     pub mod controller;
     pub mod renderer;
     pub mod events;
 }
 
-mod scene {
+pub mod scene {
     pub mod chunk;
     pub mod manager;
     pub mod object;
@@ -201,6 +201,9 @@ fn action_event_handler(event: &mut ActionEvent) {
 
         Action::UpdateResolution(width, height) => {
             unsafe {
+
+                println!("Updating resolution: {}, {}", width, height);
+
                 ENGINE.as_mut().unwrap().update_resolution(width, height);
             }
         }
@@ -219,6 +222,9 @@ pub fn init() {
     subscribe_event!("engine", change_scene_handler);
     subscribe_event!("engine", action_event_handler);
 
+    unsafe {
+        ENGINE.as_mut().unwrap().environment.scene_manager.render_scene(String::from("default"));
+    }
 }
 
 pub fn do_frame() {
