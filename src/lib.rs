@@ -210,10 +210,10 @@ fn action_event_handler(event: &mut ActionEvent) {
 
 }
 
-pub fn init(renderer: Box<dyn Renderer>) {
+pub fn init() {
 
     unsafe {
-        ENGINE = Some(Engine::new(renderer, EngineEnvironment::new()));
+        ENGINE.as_mut().unwrap().init();
     }
 
     subscribe_event!("engine", change_scene_handler);
