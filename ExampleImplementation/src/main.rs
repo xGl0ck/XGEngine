@@ -1,12 +1,30 @@
+use event_bus::subscribe_event;
 use glam::{IVec2, Vec2, Vec3};
+use XGEngine::events::{Action, ActionEvent, InteractEvent, InteractType};
 use XGEngine::renderer::renderer::RenderPerspective;
 use XGEngine::scene::chunk::Chunk;
 use XGEngine::scene::object::{ColoredSceneObject, ColoredVertex};
 use XGEngine::shader::BgfxShaderContainer;
 use XGEngine::windowed::Windowed;
 
-fn main() {
+static mut SURFACE: Option<Windowed> = None;
 
+fn on_key(event: &mut InteractEvent) {
+
+    match event.interact {
+
+        InteractType::Keyboard(glfw::Key::Escape) => {
+            unsafe {
+                SURFACE.as_mut().unwrap().close_window();
+            }
+        }
+
+        _ => {}
+    }
+
+}
+
+fn main() {
 
     let mut windowed = Windowed::new(1920, 1080, "Test", false, 60);
     windowed.add_key_handler(glfw::Key::Escape, glfw::Action::Press);
@@ -14,7 +32,6 @@ fn main() {
     fn init_objects() {
 
         let mut chunk: Chunk = Chunk::new(IVec2::new(0,0));
-
 
         let basic_object_vert: Box<[ColoredVertex]> = Box::new(
             [
@@ -80,5 +97,10 @@ fn main() {
 
     }
 
-    windowed.run(RenderPerspective::new(1920, 1080, 60.0, 0.2, 150.0), &init_objects);
+    subscribe_event!("engine", on_key);
+
+    unsafe {
+        SURFACE = Some(windowed);
+        SURFACE.as_mut().unwrap().run(RenderPerspective::new(1920, 1080, 60.0, 0.2, 150.0), &init_objects);
+    }
 }

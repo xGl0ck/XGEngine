@@ -292,12 +292,12 @@ impl Renderer for BgfxRenderer {
                             .add(Attrib::Color0, 4, AttribType::Uint8, AddArgs { normalized: true, as_int: false })
                             .end();
 
-                        let memory = Memory::copy(&colored.vertices);
+                        let memory = Memory::reference(&colored.vertices);
                         bgfx::create_vertex_buffer(&memory, &layout, BufferFlags::empty().bits())
                     };
 
                     let index_buffer = unsafe {
-                        let memory = Memory::copy(&colored.indices);
+                        let memory = Memory::reference(&colored.indices);
                         bgfx::create_index_buffer(&memory, BufferFlags::empty().bits())
                     };
 

@@ -25,7 +25,7 @@ pub struct ShutdownEvent {
 }
 
 pub struct InteractEvent {
-    interact: InteractType,
+    pub interact: InteractType,
     cancelled: bool,
     reason: Option<String>
 }

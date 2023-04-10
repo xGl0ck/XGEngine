@@ -47,6 +47,7 @@ pub struct Engine {
 
 static mut ENGINE: Option<Engine> = None;
 
+
 impl Engine {
 
     // constructor
@@ -75,8 +76,6 @@ impl Engine {
     }
 
 }
-
-
 
 fn create_engine(renderer: Box<dyn Renderer>) {
 

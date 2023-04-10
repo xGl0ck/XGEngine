@@ -9,3 +9,4 @@ edition = "2021"
 XGEngine = { path = ".." }
 glfw = "0.51.0"
 glam = "0.23.0"
+event-bus = { git = "https://github.com/XglockMan/event-bus.git" }
