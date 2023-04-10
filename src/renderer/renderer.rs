@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use std::time::{SystemTime, UNIX_EPOCH};
 use bgfx_rs::bgfx;
 use bgfx_rs::bgfx::{AddArgs, Attrib, AttribType, BufferFlags, ClearFlags, Init, Memory, PlatformData, Program, ResetArgs, ResetFlags, SetViewClearArgs, StateCullFlags, StateDepthTestFlags, StateWriteFlags, SubmitArgs, VertexLayoutBuilder};
 use bgfx_rs::bgfx::RendererType::{Count, Metal};
@@ -62,7 +63,11 @@ impl RenderPerspective {
     // constructor
     pub fn new(width: u32, height: u32, fov: f32, near: f32, far: f32) -> Self {
         Self {
-            width, height, fov, near, far
+            width,
+            height,
+            fov: fov * (std::f32::consts::PI / 180.0),
+            near,
+            far
         }
     }
 
@@ -82,6 +87,19 @@ impl RenderView {
             eye, at, up
         }
     }
+
+    pub fn set_eye(&mut self, eye: Vec3) {
+        self.eye = eye;
+    }
+
+    pub fn set_at(&mut self, at: Vec3) {
+        self.at = at;
+    }
+
+    pub fn set_up(&mut self, up: Vec3) {
+        self.up = up;
+    }
+
 
 }
 
@@ -123,8 +141,12 @@ impl Eq for RenderResolution {}
 
 pub trait Renderer {
 
+    // initializes all required resources for rendering
     fn init(&mut self);
+
+    // do one cycle which does all action in native render framework required for object render
     fn do_render_cycle(&mut self);
+
     fn shutdown(&mut self);
     fn set_scene(&mut self, scene: Rc<RefCell<Scene>>);
     fn set_debug_data(&mut self, data: TextDebugData);
@@ -200,7 +222,10 @@ impl Renderer for BgfxRenderer {
         }
 
         init.platform_data = platform_data;
-        bgfx::init(&init);
+
+        if !bgfx::init(&init) {
+            panic!("failed to init bgfx");
+        }
 
         bgfx::set_debug(bgfx::DebugFlags::NONE.bits());
         self.clean_up();
@@ -236,7 +261,7 @@ impl Renderer for BgfxRenderer {
 
         let scene_reference = scene_guard.borrow();
 
-        let mut view_matrix = Mat4::look_at_lh(scene_reference.camera.eye.clone(), scene_reference.camera.up.clone(), scene_reference.camera.at.clone());
+        let mut view_matrix = Mat4::look_at_lh(scene_reference.camera.eye.clone(), scene_reference.camera.at.clone(), scene_reference.camera.up.clone());
         let mut proj_matrix = Mat4::perspective_lh(perspective.fov, perspective.width as f32 / perspective.height as f32, perspective.near, perspective.far);
 
         bgfx::set_view_transform(0, &view_matrix.to_cols_array(), &proj_matrix.to_cols_array());
@@ -262,17 +287,17 @@ impl Renderer for BgfxRenderer {
                         let layout = VertexLayoutBuilder::new();
 
                         layout
-                            .begin(Count)
+                            .begin(Metal)
                             .add(Attrib::Position, 3, AttribType::Float, AddArgs::default())
                             .add(Attrib::Color0, 4, AttribType::Uint8, AddArgs { normalized: true, as_int: false })
                             .end();
 
-                        let memory = Memory::reference(&colored.vertices);
+                        let memory = Memory::copy(&colored.vertices);
                         bgfx::create_vertex_buffer(&memory, &layout, BufferFlags::empty().bits())
                     };
 
                     let index_buffer = unsafe {
-                        let memory = Memory::reference(&colored.indices);
+                        let memory = Memory::copy(&colored.indices);
                         bgfx::create_index_buffer(&memory, BufferFlags::empty().bits())
                     };
 
@@ -306,7 +331,6 @@ impl Renderer for BgfxRenderer {
                     let program = Rc::clone(&shaders.program.clone().unwrap());
 
                     bgfx::submit(0, program.as_ref(), SubmitArgs::default());
-                    println!("submiting");
                 }
 
                 _ => {}
@@ -325,7 +349,6 @@ impl Renderer for BgfxRenderer {
                 bgfx::dbg_text(0, i as u16, 0x0f, format!("{}: {}", line.key, line.value).as_str());
 
             }
-
 
         }
 

@@ -50,13 +50,14 @@ impl Windowed {
 
         let (mut window, events) = glfw.create_window(self.width, self.height, &self.title, glfw::WindowMode::Windowed).expect("Failed to create GLFW window.");
 
+        glfw.window_hint(glfw::WindowHint::ClientApi(glfw::ClientApiHint::NoApi));
+        window.set_key_polling(true);
+
         // set window
         self.window = Some(window);
 
         // unwrap window
         let window = self.window.as_mut().unwrap();
-
-        glfw.window_hint(glfw::WindowHint::ClientApi(glfw::ClientApiHint::NoApi));
 
         window.set_key_polling(true);
         //window.set_cursor_pos_polling(true);

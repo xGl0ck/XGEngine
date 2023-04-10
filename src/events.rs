@@ -11,8 +11,7 @@ pub enum InteractType {
 pub enum Action {
     ChangeScene(String),
     ViewPortUpdate(Vec3, Vec3, Vec3, i32),
-    UpdateResolution(u32, u32),
-    ClearRender()
+    UpdateResolution(u32, u32)
 }
 
 pub struct InitEvent {

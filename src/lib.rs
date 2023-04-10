@@ -3,7 +3,7 @@ use std::rc::Rc;
 use event_bus::{dispatch_event, EventBus, subscribe_event};
 use glam::Vec3;
 use glfw::{FAIL_ON_ERRORS, Glfw};
-use glfw::Key::{B, N};
+use glfw::Key::{B, N, P};
 use log::info;
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 use crate::environment::EngineEnvironment;
@@ -88,6 +88,18 @@ fn create_engine(renderer: Box<dyn Renderer>) {
 
     }
 
+}
+
+pub fn set_debug(debug: bool) {
+    unsafe  {
+
+        if ENGINE.is_none() {
+            panic!("Cannot debug when ENGINE is not initialized");
+        }
+
+        ENGINE.as_mut().unwrap().renderer.do_debug(debug);
+
+    }
 }
 
 // create scene in engine environment
