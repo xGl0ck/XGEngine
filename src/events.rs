@@ -1,11 +1,36 @@
 use event_bus::Event;
 use glam::{Vec2, Vec3};
 use glfw::Key::S;
+use glfw::MouseButton;
+use crate::events::PressAction::NONE;
 use crate::scene::scene::Scene;
 
 pub enum InteractType {
     Keyboard(glfw::Key),
-    Mouse(glfw::MouseButton, i32, i32)
+    Mouse()
+}
+
+pub enum PressAction {
+    NONE,
+    PRESSED(MouseButton)
+}
+
+pub struct MouseData {
+    pub cursor: (f64, f64),
+    pub delta: (f64, f64),
+    pub pressed: PressAction
+}
+
+impl MouseData {
+
+    pub fn new() -> Self {
+        Self {
+            cursor: (0.0, 0.0),
+            delta: (0.0, 0.0),
+            pressed: NONE
+        }
+    }
+
 }
 
 pub enum Action {
@@ -26,6 +51,7 @@ pub struct ShutdownEvent {
 
 pub struct InteractEvent {
     pub interact: InteractType,
+    pub data: MouseData,
     cancelled: bool,
     reason: Option<String>
 }
@@ -67,7 +93,8 @@ impl InteractEvent {
         Self {
             interact,
             cancelled: false,
-            reason: None
+            reason: None,
+            data: MouseData::new()
         }
     }
 
@@ -189,7 +216,8 @@ mod tests {
         let mut event = InteractEvent {
             interact: Keyboard(glfw::Key::B),
             cancelled: false,
-            reason: None
+            reason: None,
+            data: MouseData::new()
         };
 
         let mut init_event = InitEvent {

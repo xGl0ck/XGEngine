@@ -100,6 +100,19 @@ impl RenderView {
         self.up = up;
     }
 
+    // calculates normal direction from at and eye
+    pub fn get_normal(&self) -> Vec3 {
+        (self.at - self.eye).normalize()
+    }
+
+    // moves eye in normal direction
+    pub fn move_eye(&mut self, distance: f32) {
+        self.eye += self.get_normal() * distance;
+    }
+
+    pub fn move_eye_back(&mut self, distance: f32) {
+        self.eye -= self.get_normal() * distance;
+    }
 
 }
 
@@ -141,7 +154,7 @@ impl Eq for RenderResolution {}
 
 pub trait Renderer {
 
-    // initializes all required resources for rendering
+    // initializes all resources required for rendering
     fn init(&mut self);
 
     // do one cycle which does all action in native render framework required for object render

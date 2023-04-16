@@ -33,17 +33,17 @@ impl Windowed {
         }
     }
 
-    // add key handler
+    // adds key handler
     pub fn add_key_handler(&mut self, key: glfw::Key, action: glfw::Action) {
         self.key_handlers.push(WindowedKeyHandler { key, action });
     }
 
-    // close window method
+    // closes window
     pub fn close_window(&mut self) {
         self.window.as_mut().unwrap().set_should_close(true);
     }
 
-    // create window, create renderer and run
+    // creates window, create renderer and run
     pub fn run(&mut self, default_perspective: RenderPerspective, before_cycle: &dyn Fn()) {
 
         let mut glfw = glfw::init(FAIL_ON_ERRORS).unwrap();
@@ -59,7 +59,6 @@ impl Windowed {
         // unwrap window
         let window = self.window.as_mut().unwrap();
 
-        window.set_key_polling(true);
         //window.set_cursor_pos_polling(true);
 
         if self.disable_cursor {
@@ -84,6 +83,8 @@ impl Windowed {
 
         let mut old = (0, 0);
 
+        let mut cursor_old: (f64, f64) = (0.0, 0.0);
+
         while !window.should_close() {
 
             glfw.poll_events();
@@ -97,6 +98,25 @@ impl Windowed {
                 dispatch_event!("engine", &mut event);
 
                 old = current_res;
+
+            }
+
+            // get cursor position
+            let cursor = window.get_cursor_pos();
+
+            // calculate delta
+            let delta = (cursor.0 - cursor_old.0, cursor.1 - cursor_old.1);
+
+            cursor_old = cursor;
+
+            if delta.0 != 0.0 || delta.1 != 0.0 {
+
+                let mut event = InteractEvent::new(InteractType::Mouse());
+
+                event.data.delta = delta.clone();
+                event.data.cursor = cursor.clone();
+
+                dispatch_event!("engine", &mut event);
 
             }
 
@@ -124,9 +144,10 @@ impl Windowed {
                 }
             }
 
-            unsafe {
-                ENGINE.as_mut().unwrap().renderer.do_render_cycle();
-            }
+            crate::do_frame();
+
+            // spleep in order to limit fps
+            std::thread::sleep(std::time::Duration::from_millis((1000 / self.fps) as u64));
 
         }
 

@@ -49,10 +49,15 @@ impl EngineEnvironment {
 
     }
 
-    pub fn render_scene(&self, name: String) -> std::io::Result<(EventResult)> {
+    pub fn render_scene(&mut self, name: String) -> std::io::Result<(EventResult)> {
 
-        self.scene_manager.render_scene(name)
+        let result = self.scene_manager.render_scene(name.clone());
 
+        if result.is_ok() {
+            self.current_scene = self.get_scene(name.clone()).unwrap();
+        }
+
+        result
     }
 }
 
@@ -94,7 +99,7 @@ mod tests {
 
         subscribe_event!("engine", event_sub);
 
-        let environment = EngineEnvironment::new();
+        let mut environment = EngineEnvironment::new();
         let result = environment.render_scene(String::from("default"));
         assert_eq!(result.is_ok(), true);
     }
