@@ -1,6 +1,7 @@
 use event_bus::{dispatch_event, subscribe_event};
 use glam::{IVec2, Vec2, Vec3};
 use XGEngine::events::{Action, ActionEvent, InteractEvent, InteractType};
+use XGEngine::renderer::renderer::MoveDirection::{BACKWARDS, FORWARD, LEFT, RIGHT};
 use XGEngine::renderer::renderer::RenderPerspective;
 use XGEngine::scene::chunk::Chunk;
 use XGEngine::scene::object::{ColoredSceneObject, ColoredVertex};
@@ -51,8 +52,7 @@ fn on_key(event: &mut InteractEvent) {
 
             let mut scene_object = scene.borrow_mut();
 
-            scene_object.camera.move_eye(0.1);
-
+            scene_object.camera.move_eye(0.1, FORWARD);
         }
 
         InteractType::Keyboard(glfw::Key::S) => {
@@ -63,8 +63,29 @@ fn on_key(event: &mut InteractEvent) {
 
             let mut scene_object = scene.borrow_mut();
 
-            scene_object.camera.move_eye_back(0.1);
+            scene_object.camera.move_eye(0.1, BACKWARDS)
+        }
 
+        InteractType::Keyboard(glfw::Key::A) => {
+
+            let current_scene = XGEngine::current_scene();
+
+            let scene = current_scene.unwrap();
+
+            let mut scene_object = scene.borrow_mut();
+
+            scene_object.camera.move_eye(0.1, RIGHT);
+        }
+
+        InteractType::Keyboard(glfw::Key::D) => {
+
+            let current_scene = XGEngine::current_scene();
+
+            let scene = current_scene.unwrap();
+
+            let mut scene_object = scene.borrow_mut();
+
+            scene_object.camera.move_eye(0.1, LEFT);
         }
 
         InteractType::Keyboard(glfw::Key::T) => {
@@ -158,6 +179,8 @@ fn main() {
     windowed.add_key_handler(glfw::Key::Escape, glfw::Action::Press);
     windowed.add_key_handler(glfw::Key::W, glfw::Action::Press);
     windowed.add_key_handler(glfw::Key::S, glfw::Action::Press);
+    windowed.add_key_handler(glfw::Key::A, glfw::Action::Press);
+    windowed.add_key_handler(glfw::Key::D, glfw::Action::Press);
     windowed.add_key_handler(glfw::Key::T, glfw::Action::Press);
     windowed.add_key_handler(glfw::Key::G, glfw::Action::Press);
 
