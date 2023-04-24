@@ -26,7 +26,6 @@ mod messaging {
 }
 
 pub mod renderer {
-    pub mod controller;
     pub mod renderer;
     pub mod events;
 }

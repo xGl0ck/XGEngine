@@ -79,6 +79,10 @@ pub struct RenderView {
     pub up: Vec3
 }
 
+pub enum MoveDirection {
+    FORWARD, BACKWARDS, LEFT, RIGHT
+}
+
 impl RenderView {
 
     // constructor
@@ -106,12 +110,26 @@ impl RenderView {
     }
 
     // moves eye in normal direction
-    pub fn move_eye(&mut self, distance: f32) {
-        self.eye += self.get_normal() * distance;
-    }
+    pub fn move_eye(&mut self, distance: f32, direction: MoveDirection) {
 
-    pub fn move_eye_back(&mut self, distance: f32) {
-        self.eye -= self.get_normal() * distance;
+        match direction {
+            MoveDirection::FORWARD => self.eye += self.get_normal() * distance,
+            MoveDirection::BACKWARDS => self.eye -= self.get_normal() * distance,
+
+            // move eye left or right
+            MoveDirection::LEFT => {
+                let normal = self.get_normal();
+                let left = Vec3::new(normal.z, normal.y, -normal.x);
+                self.eye += left * distance;
+            },
+
+            MoveDirection::RIGHT => {
+                let normal = self.get_normal();
+                let right = Vec3::new(-normal.z, normal.y, normal.x);
+                self.eye += right * distance;
+            },
+        }
+
     }
 
 }
