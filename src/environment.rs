@@ -85,8 +85,6 @@ mod tests {
 
     fn event_sub(event: &mut ChangeSceneEvent) {
         info!("Event received: {:?}", event.scene.borrow().name);
-
-        println!("Event received: {:?}", event.scene.borrow().name);
     }
 
     #[test]

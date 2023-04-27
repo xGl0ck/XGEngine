@@ -4,7 +4,7 @@ use event_bus::{dispatch_event, EventBus, subscribe_event};
 use glam::Vec3;
 use glfw::{FAIL_ON_ERRORS, Glfw};
 use glfw::Key::{B, N, P};
-use log::info;
+use log::{info, LevelFilter, log, Metadata};
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 use crate::environment::EngineEnvironment;
 use crate::events::{Action, ActionEvent, InteractEvent, InteractType};
@@ -37,6 +37,24 @@ pub mod scene {
     pub mod scene;
 }
 
+struct EngineLogger;
+
+impl log::Log for EngineLogger {
+    fn enabled(&self, metadata: &Metadata) -> bool {
+        metadata.level() <= log::Level::Info
+    }
+
+    fn log(&self, record: &log::Record) {
+        if self.enabled(record.metadata()) {
+            println!("[{}] {}", record.level(), record.args());
+        }
+    }
+
+    fn flush(&self) {}
+}
+
+static LOGGER: EngineLogger = EngineLogger;
+
 pub struct Engine {
     renderer: Box<dyn Renderer>,
     environment: EngineEnvironment,
@@ -45,7 +63,6 @@ pub struct Engine {
 }
 
 static mut ENGINE: Option<Engine> = None;
-
 
 impl Engine {
 
@@ -79,6 +96,8 @@ impl Engine {
 fn create_engine(renderer: Box<dyn Renderer>) {
 
     unsafe {
+
+        log::set_logger(&LOGGER).map(|()| log::set_max_level(LevelFilter::Info)).expect("Cannot create logger");
 
         let environment = EngineEnvironment::new();
 
@@ -212,7 +231,7 @@ fn action_event_handler(event: &mut ActionEvent) {
         Action::UpdateResolution(width, height) => {
             unsafe {
 
-                println!("Updating resolution: {}, {}", width, height);
+                info!("Updating resolution: {}, {}", width, height);
 
                 ENGINE.as_mut().unwrap().update_resolution(width, height);
             }

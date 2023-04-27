@@ -184,6 +184,7 @@ mod tests {
     use super::*;
     use event_bus::{subscribe_event, dispatch_event, EventBus, Event, EventResult};
     use event_bus::EventResult::{EvCancelled, EvPassed};
+    use log::info;
     use crate::events::InteractType::Keyboard;
 
     fn test_sub(event: &mut InteractEvent) {
@@ -199,7 +200,7 @@ mod tests {
     }
 
     fn test_sub_cancelled(event: &mut InitEvent) {
-        println!("Event init cancel called");
+        info!("Event init cancel called");
         event.cancel(Option::from("Event init cancelled".to_string()));
     }
 
