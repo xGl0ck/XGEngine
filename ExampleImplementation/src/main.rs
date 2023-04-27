@@ -188,11 +188,35 @@ fn main() {
 
         let mut chunk: Chunk = Chunk::new(IVec2::new(0,0));
 
-        // create bgfx shader container
-        let shader_container = BgfxShaderContainer::new(
-            std::fs::read("resources/shaders/metal/fs_cubes.bin").unwrap(),
-            std::fs::read("resources/shaders/metal/vs_cubes.bin").unwrap()
-        );
+        let mut resource_path = std::env::current_dir().unwrap();
+
+        resource_path.push("resources/shaders");
+
+        #[cfg(target_os = "macos")]
+        resource_path.push("metal");
+
+        #[cfg(any(
+        target_os = "windows",
+        target_os = "linux"
+        ))]
+        current_path.push("opengl");
+
+        // loading main shader
+        let shader_container = {
+            let mut vertex_path = resource_path.clone();
+            vertex_path.push("vs_cubes.bin");
+
+            let mut fragment_path = resource_path.clone();
+            fragment_path.push("fs_cubes.bin");
+
+            // create bgfx shader container
+            let shader_container = BgfxShaderContainer::new(
+                std::fs::read(fragment_path).unwrap(),
+                std::fs::read(vertex_path).unwrap()
+            );
+
+            shader_container
+        };
 
         let id = XGEngine::add_shader(Box::new(shader_container));
 
