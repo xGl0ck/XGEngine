@@ -1,34 +1,34 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-use event_bus::{dispatch_event, EventBus, subscribe_event};
-use glam::Vec3;
-use glfw::{FAIL_ON_ERRORS, Glfw};
-use glfw::Key::{B, N, P};
-use log::info;
-use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 use crate::environment::EngineEnvironment;
 use crate::events::{Action, ActionEvent, InteractEvent, InteractType};
-use crate::renderer::renderer::{BgfxRenderer, Renderer, RenderPerspective, RenderView};
+use crate::renderer::renderer::{BgfxRenderer, RenderPerspective, RenderView, Renderer};
 use crate::scene::manager::{ChangeSceneEvent, SceneManager};
 use crate::scene::scene::Scene;
 use crate::shader::{ShaderContainer, ShaderManager};
+use event_bus::{dispatch_event, subscribe_event, EventBus};
+use glam::Vec3;
+use glfw::Key::{B, N, P};
+use glfw::{Glfw, FAIL_ON_ERRORS};
+use log::info;
+use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 mod core;
-pub mod events;
 mod environment;
+pub mod events;
 pub mod shader;
 pub mod windowed;
 
 mod messaging {
-//    pub mod controller;
-//    pub mod event;
-//    pub mod message;
+    //    pub mod controller;
+    //    pub mod event;
+    //    pub mod message;
 }
 
 pub mod renderer {
     pub mod controller;
-    pub mod renderer;
     pub mod events;
+    pub mod renderer;
 }
 
 pub mod scene {
@@ -42,20 +42,19 @@ pub struct Engine {
     renderer: Box<dyn Renderer>,
     environment: EngineEnvironment,
     shader_manager: ShaderManager,
-    bus: EventBus
+    bus: EventBus,
 }
 
 static mut ENGINE: Option<Engine> = None;
 
-
 impl Engine {
-
     // constructor
     pub fn new(renderer: Box<dyn Renderer>, environment: EngineEnvironment) -> Self {
         Self {
-            renderer, environment,
+            renderer,
+            environment,
             shader_manager: ShaderManager::new(),
-            bus: EventBus::new("engine")
+            bus: EventBus::new("engine"),
         }
     }
 
@@ -74,97 +73,75 @@ impl Engine {
     fn update_resolution(&mut self, width: u32, height: u32) {
         self.renderer.update_surface_resolution(width, height);
     }
-
 }
 
 fn create_engine(renderer: Box<dyn Renderer>) {
-
     unsafe {
-
         let environment = EngineEnvironment::new();
 
         ENGINE = Some(Engine::new(renderer, environment));
-
     }
-
 }
 
 pub fn set_debug(debug: bool) {
-    unsafe  {
-
+    unsafe {
         if ENGINE.is_none() {
             panic!("Cannot debug when ENGINE is not initialized");
         }
 
         ENGINE.as_mut().unwrap().renderer.do_debug(debug);
-
     }
 }
 
 // create scene in engine environment
 pub fn create_scene(name: String) {
-
     unsafe {
-
         if ENGINE.is_none() {
             panic!("Cannot create scene when ENGINE is not initialized");
         }
 
         ENGINE.as_mut().unwrap().environment.create_scene(name);
-
     }
-
 }
 
 // get scene
 pub fn get_scene(name: String) -> std::io::Result<Rc<RefCell<Scene>>> {
-
     unsafe {
-
         if ENGINE.is_none() {
             panic!("Cannot get scene when ENGINE is not initialized");
         }
 
         ENGINE.as_mut().unwrap().environment.get_scene(name)
-
     }
-
 }
 
 // current scene
 pub fn current_scene() -> std::io::Result<Rc<RefCell<Scene>>> {
-
     unsafe {
-
         if ENGINE.is_none() {
             panic!("Cannot get scene when ENGINE is not initialized");
         }
 
-        Ok(Rc::clone(&ENGINE.as_mut().unwrap().environment.current_scene))
-
+        Ok(Rc::clone(
+            &ENGINE.as_mut().unwrap().environment.current_scene,
+        ))
     }
-
 }
 
 // add shader
 pub fn add_shader(shader: Box<dyn ShaderContainer>) -> i32 {
-
     unsafe {
-
         if ENGINE.is_none() {
             panic!("Cannot add shader when ENGINE is not initialized");
         }
 
         ENGINE.as_mut().unwrap().shader_manager.add_shader(shader)
     }
-
 }
 
 // get shader
 pub fn get_shader(id: i32) -> std::io::Result<Rc<RefCell<Box<dyn ShaderContainer>>>> {
-
     unsafe {
-
         if ENGINE.is_none() {
             panic!("Cannot get shader when ENGINE is not initialized");
         }
@@ -172,60 +149,54 @@ pub fn get_shader(id: i32) -> std::io::Result<Rc<RefCell<Box<dyn ShaderContainer
         let shader = ENGINE.as_mut().unwrap().shader_manager.get_shader(id);
 
         if shader.is_none() {
-            return Err(std::io::Error::new(std::io::ErrorKind::Other, "Shader not found"));
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "Shader not found",
+            ));
         }
 
         Ok(shader.unwrap())
-
     }
-
 }
 
 fn change_scene_handler(event: &mut ChangeSceneEvent) {
-
     unsafe {
-
         if ENGINE.is_none() {
             panic!("Cannot change event when RENDERER is not initialized");
         }
 
         info!("Changing scene");
 
-        ENGINE.as_mut().unwrap().renderer.set_scene(Rc::clone(&event.scene));
-
+        ENGINE
+            .as_mut()
+            .unwrap()
+            .renderer
+            .set_scene(Rc::clone(&event.scene));
     }
 }
 
 fn action_event_handler(event: &mut ActionEvent) {
-
     match event.action {
-
-        Action::ChangeScene(ref scene) => {
-
-            unsafe {
-
-                ENGINE.as_mut().unwrap().environment.render_scene(scene.clone()).expect("TODO: panic message");
-
-            }
-
+        Action::ChangeScene(ref scene) => unsafe {
+            ENGINE
+                .as_mut()
+                .unwrap()
+                .environment
+                .render_scene(scene.clone())
+                .expect("TODO: panic message");
         },
 
-        Action::UpdateResolution(width, height) => {
-            unsafe {
+        Action::UpdateResolution(width, height) => unsafe {
+            println!("Updating resolution: {}, {}", width, height);
 
-                println!("Updating resolution: {}, {}", width, height);
-
-                ENGINE.as_mut().unwrap().update_resolution(width, height);
-            }
-        }
+            ENGINE.as_mut().unwrap().update_resolution(width, height);
+        },
 
         _ => {}
     }
-
 }
 
 pub fn init() {
-
     unsafe {
         ENGINE.as_mut().unwrap().init();
     }
@@ -234,27 +205,27 @@ pub fn init() {
     subscribe_event!("engine", action_event_handler);
 
     unsafe {
-        ENGINE.as_mut().unwrap().environment.scene_manager.render_scene(String::from("default"));
+        ENGINE
+            .as_mut()
+            .unwrap()
+            .environment
+            .scene_manager
+            .render_scene(String::from("default"));
     }
 }
 
 pub fn do_frame() {
-
     unsafe {
-
         if ENGINE.as_mut().is_none() {
             panic!("Cannot do frame when ENGINE is not initialized");
         }
 
         ENGINE.as_mut().unwrap().renderer.do_render_cycle();
-
     }
-
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::*;
-
 }

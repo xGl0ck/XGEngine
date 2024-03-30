@@ -19,3 +19,6 @@ Cargo.lock
 
 .idea
 *.iml
+
+/src/target
+/src/Cargo.lock

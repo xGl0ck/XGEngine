@@ -1,55 +1,67 @@
+use crate::shader::{BgfxShaderContainerLoadContext, ShaderContainer, ShaderContainerLoadContext};
+use bgfx_rs::bgfx::Texture;
+use glam::Vec3;
+use image::DynamicImage;
 use std::any::Any;
 use std::cell::RefCell;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
-use bgfx_rs::bgfx::Texture;
-use glam::Vec3;
-use image::DynamicImage;
 use uuid::Uuid;
-use crate::shader::ShaderContainer;
 
+#[derive(Clone, Copy)]
 pub struct ColoredVertex {
     pub coordinates: Vec3,
-    pub color_rgba: u32
+    pub color_rgba: u32,
 }
 
+unsafe impl bytemuck::Pod for ColoredVertex {}
+unsafe impl bytemuck::Zeroable for ColoredVertex {}
+
+#[derive(Clone, Copy)]
 pub struct ImageTexturedVertex {
     pub coordinates: Vec3,
     pub texture_u: i16,
-    pub texture_v: i16
+    pub texture_v: i16,
 }
 
+unsafe impl bytemuck::Pod for ImageTexturedVertex {}
+unsafe impl bytemuck::Zeroable for ImageTexturedVertex {}
+
+#[derive(Clone, Copy)]
 pub struct TgaTexturedVertex {
     pub coordinates: Vec3,
     pub normal_rgba: u32,
     pub tangent: u32,
     pub texture_u: i16,
-    pub texture_v: i16
+    pub texture_v: i16,
 }
+
+unsafe impl bytemuck::Pod for TgaTexturedVertex {}
+unsafe impl bytemuck::Zeroable for TgaTexturedVertex {}
 
 pub enum ObjectTypes {
     Colored,
     ImageTextured,
-    TgaTextured
+    TgaTextured,
 }
 
 pub struct Shaders {
     vertex: Vec<u8>,
-    pixel: Vec<u8>
+    pixel: Vec<u8>,
 }
-
 
 pub trait SceneObject {
     fn get_type(&self) -> ObjectTypes;
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
+    fn shader_container(&self) -> Rc<RefCell<Box<dyn ShaderContainer>>>;
 }
 
 pub struct ColoredSceneObject {
     pub vertices: Box<[ColoredVertex]>,
     pub indices: Box<[u16]>,
     pub shaders: Rc<RefCell<Box<dyn ShaderContainer>>>,
-    pub coordinates: Vec3
+    pub coordinates: Vec3,
 }
 
 pub struct ImageTexturedSceneObject {
@@ -57,7 +69,7 @@ pub struct ImageTexturedSceneObject {
     pub indices: Box<[u16]>,
     pub texture: DynamicImage,
     pub shaders: Rc<RefCell<Box<dyn ShaderContainer>>>,
-    pub coordinates: Vec3
+    pub coordinates: Vec3,
 }
 
 pub struct TgaTexturedSceneObject {
@@ -66,37 +78,83 @@ pub struct TgaTexturedSceneObject {
     pub texture_color: DynamicImage,
     pub texture_normal: DynamicImage,
     pub shaders: Rc<RefCell<Box<dyn ShaderContainer>>>,
-    pub coordinates: Vec3
+    pub coordinates: Vec3,
 }
 
 // Implementations of new() with parameters for all SceneObject implementations
 impl ColoredSceneObject {
-    pub fn new(vertices: Box<[ColoredVertex]>, indices: Box<[u16]>, shaders: Rc<RefCell<Box<dyn ShaderContainer>>>, coordinates: Vec3) -> Self {
+    pub fn new(
+        vertices: Box<[ColoredVertex]>,
+        indices: Box<[u16]>,
+        shaders: Rc<RefCell<Box<dyn ShaderContainer>>>,
+        coordinates: Vec3,
+    ) -> Self {
         Self {
-            vertices, indices, shaders, coordinates
+            vertices,
+            indices,
+            shaders,
+            coordinates,
         }
+    }
+
+    pub fn primitve_vertices(&self) -> Box<[(f32, f32, f32, u32); 100]> {
+        let ver_count = self.vertices.len();
+
+        let mut verices: Box<[(f32, f32, f32, u32); 100]> = Box::new([(0.0, 0.0, 0.0, 0); 100]);
+
+        for i in 0..ver_count {
+            verices[i] = (
+                self.vertices[i].coordinates.x,
+                self.vertices[i].coordinates.y,
+                self.vertices[i].coordinates.z,
+                self.vertices[i].color_rgba,
+            );
+        }
+
+        verices
     }
 }
 
 impl ImageTexturedSceneObject {
-    pub fn new(vertices: Box<[ImageTexturedVertex]>, indices: Box<[u16]>, texture: DynamicImage, shaders: Rc<RefCell<Box<dyn ShaderContainer>>>, coordinates: Vec3) -> Self {
+    pub fn new(
+        vertices: Box<[ImageTexturedVertex]>,
+        indices: Box<[u16]>,
+        texture: DynamicImage,
+        shaders: Rc<RefCell<Box<dyn ShaderContainer>>>,
+        coordinates: Vec3,
+    ) -> Self {
         Self {
-            vertices, indices, texture, shaders, coordinates
+            vertices,
+            indices,
+            texture,
+            shaders,
+            coordinates,
         }
     }
 }
 
 impl TgaTexturedSceneObject {
-    pub fn new(vertices: Box<[TgaTexturedVertex]>, indices: Box<[u16]>, texture_color: DynamicImage, texture_normal: DynamicImage, shaders: Rc<RefCell<Box<dyn ShaderContainer>>>, coordinates: Vec3) -> Self {
+    pub fn new(
+        vertices: Box<[TgaTexturedVertex]>,
+        indices: Box<[u16]>,
+        texture_color: DynamicImage,
+        texture_normal: DynamicImage,
+        shaders: Rc<RefCell<Box<dyn ShaderContainer>>>,
+        coordinates: Vec3,
+    ) -> Self {
         Self {
-            vertices, indices, texture_color, texture_normal, shaders, coordinates
+            vertices,
+            indices,
+            texture_color,
+            texture_normal,
+            shaders,
+            coordinates,
         }
     }
 }
 
 // SceneObject implementation for ColoredSceneObject
 impl SceneObject for ColoredSceneObject {
-
     fn get_type(&self) -> ObjectTypes {
         ObjectTypes::Colored
     }
@@ -108,11 +166,14 @@ impl SceneObject for ColoredSceneObject {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
+
+    fn shader_container(&self) -> Rc<RefCell<Box<dyn ShaderContainer>>> {
+        self.shaders.clone()
+    }
 }
 
 // SceneObject implementation for ImageTexturedSceneObject
 impl SceneObject for ImageTexturedSceneObject {
-
     fn get_type(&self) -> ObjectTypes {
         ObjectTypes::ImageTextured
     }
@@ -124,11 +185,14 @@ impl SceneObject for ImageTexturedSceneObject {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
+
+    fn shader_container(&self) -> Rc<RefCell<Box<dyn ShaderContainer>>> {
+        self.shaders.clone()
+    }
 }
 
 // SceneObject implementation for TgaTexturedSceneObject
 impl SceneObject for TgaTexturedSceneObject {
-
     fn get_type(&self) -> ObjectTypes {
         ObjectTypes::TgaTextured
     }
@@ -140,6 +204,10 @@ impl SceneObject for TgaTexturedSceneObject {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
+
+    fn shader_container(&self) -> Rc<RefCell<Box<dyn ShaderContainer>>> {
+        self.shaders.clone()
+    }
 }
 
 pub struct TestShaderContainer {}
@@ -149,7 +217,7 @@ impl ShaderContainer for TestShaderContainer {
         false
     }
 
-    fn load(&mut self) {
+    fn load(&mut self, context: Box<dyn ShaderContainerLoadContext>) {
         println!("TestShaderContainer::load()");
     }
 
@@ -162,12 +230,11 @@ impl ShaderContainer for TestShaderContainer {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use std::any::Any;
-    use glfw::Key::V;
     use super::*;
+    use glfw::Key::V;
+    use std::any::Any;
 
     // as_any() test for all SceneObject implementations
     #[test]
@@ -176,7 +243,7 @@ mod tests {
             vertices: Box::new([]),
             indices: Box::new([]),
             shaders: Rc::new(RefCell::new(Box::new(TestShaderContainer {}))),
-            coordinates: Vec3::new(0.0, 0.0, 0.0)
+            coordinates: Vec3::new(0.0, 0.0, 0.0),
         };
 
         let image_textured_object = ImageTexturedSceneObject {
@@ -184,7 +251,7 @@ mod tests {
             indices: Box::new([]),
             texture: DynamicImage::new_rgb8(50, 50),
             shaders: Rc::new(RefCell::new(Box::new(TestShaderContainer {}))),
-            coordinates: Vec3::new(0.0, 0.0, 0.0)
+            coordinates: Vec3::new(0.0, 0.0, 0.0),
         };
 
         let tga_textured_object = TgaTexturedSceneObject {
@@ -193,26 +260,39 @@ mod tests {
             texture_color: DynamicImage::new_rgb8(50, 50),
             texture_normal: DynamicImage::new_rgb8(50, 50),
             shaders: Rc::new(RefCell::new(Box::new(TestShaderContainer {}))),
-            coordinates: Vec3::new(0.0, 0.0, 0.0)
+            coordinates: Vec3::new(0.0, 0.0, 0.0),
         };
 
         assert!(colored_object.as_any().is::<ColoredSceneObject>());
-        assert!(image_textured_object.as_any().is::<ImageTexturedSceneObject>());
+        assert!(image_textured_object
+            .as_any()
+            .is::<ImageTexturedSceneObject>());
         assert!(tga_textured_object.as_any().is::<TgaTexturedSceneObject>());
 
         // cast test
 
         let colored_object_any = colored_object.as_any();
-        let colored_object_casted = colored_object_any.downcast_ref::<ColoredSceneObject>().unwrap();
+        let colored_object_casted = colored_object_any
+            .downcast_ref::<ColoredSceneObject>()
+            .unwrap();
         assert_eq!(colored_object_casted.type_id(), colored_object.type_id());
 
         let image_textured_object_any = image_textured_object.as_any();
-        let image_textured_object_casted = image_textured_object_any.downcast_ref::<ImageTexturedSceneObject>().unwrap();
-        assert_eq!(image_textured_object_casted.type_id(), image_textured_object.type_id());
+        let image_textured_object_casted = image_textured_object_any
+            .downcast_ref::<ImageTexturedSceneObject>()
+            .unwrap();
+        assert_eq!(
+            image_textured_object_casted.type_id(),
+            image_textured_object.type_id()
+        );
 
         let tga_textured_object_any = tga_textured_object.as_any();
-        let tga_textured_object_casted = tga_textured_object_any.downcast_ref::<TgaTexturedSceneObject>().unwrap();
-        assert_eq!(tga_textured_object_casted.type_id(), tga_textured_object.type_id());
-
+        let tga_textured_object_casted = tga_textured_object_any
+            .downcast_ref::<TgaTexturedSceneObject>()
+            .unwrap();
+        assert_eq!(
+            tga_textured_object_casted.type_id(),
+            tga_textured_object.type_id()
+        );
     }
 }

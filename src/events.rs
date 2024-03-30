@@ -1,103 +1,95 @@
+use crate::events::PressAction::NONE;
+use crate::scene::scene::Scene;
 use event_bus::Event;
 use glam::{Vec2, Vec3};
 use glfw::Key::S;
 use glfw::MouseButton;
-use crate::events::PressAction::NONE;
-use crate::scene::scene::Scene;
 
 pub enum InteractType {
     Keyboard(glfw::Key),
-    Mouse()
+    Mouse(),
 }
 
 pub enum PressAction {
     NONE,
-    PRESSED(MouseButton)
+    PRESSED(MouseButton),
 }
 
 pub struct MouseData {
     pub cursor: (f64, f64),
     pub delta: (f64, f64),
-    pub pressed: PressAction
+    pub pressed: PressAction,
 }
 
 impl MouseData {
-
     pub fn new() -> Self {
         Self {
             cursor: (0.0, 0.0),
             delta: (0.0, 0.0),
-            pressed: NONE
+            pressed: NONE,
         }
     }
-
 }
 
 pub enum Action {
     ChangeScene(String),
     ViewPortUpdate(Vec3, Vec3, Vec3, i32),
-    UpdateResolution(u32, u32)
+    UpdateResolution(u32, u32),
 }
 
 pub struct InitEvent {
     cancelled: bool,
-    reason: Option<String>
+    reason: Option<String>,
 }
 
 pub struct ShutdownEvent {
     cancelled: bool,
-    reason: Option<String>
+    reason: Option<String>,
 }
 
 pub struct InteractEvent {
     pub interact: InteractType,
     pub data: MouseData,
     cancelled: bool,
-    reason: Option<String>
+    reason: Option<String>,
 }
 
 pub struct ActionEvent {
     pub cancelled: bool,
     pub action: Action,
-    reason: Option<String>
+    reason: Option<String>,
 }
 
 impl ActionEvent {
-
     // constructor
     pub fn new(action: Action) -> Self {
         Self {
             cancelled: false,
             action,
-            reason: None
+            reason: None,
         }
     }
-
 }
 
 impl InitEvent {
-
     pub fn new() -> Self {
         Self {
             cancelled: false,
-            reason: None
+            reason: None,
         }
     }
-
 }
 
 // interact event constructor
 impl InteractEvent {
-
     pub fn new(interact: InteractType) -> Self {
         Self {
             interact,
             cancelled: false,
             reason: None,
-            data: MouseData::new()
+            data: MouseData::new(),
         }
     }
-
 }
 
 impl Event for InteractEvent {
@@ -139,7 +131,6 @@ impl Event for ShutdownEvent {
 }
 
 impl Event for InitEvent {
-
     fn cancellable(&self) -> bool {
         true
     }
@@ -159,7 +150,6 @@ impl Event for InitEvent {
 }
 
 impl Event for ActionEvent {
-
     fn cancellable(&self) -> bool {
         true
     }
@@ -176,15 +166,14 @@ impl Event for ActionEvent {
         self.cancelled = _cancel;
         self.reason = reason;
     }
-
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use event_bus::{subscribe_event, dispatch_event, EventBus, Event, EventResult};
-    use event_bus::EventResult::{EvCancelled, EvPassed};
     use crate::events::InteractType::Keyboard;
+    use event_bus::EventResult::{EvCancelled, EvPassed};
+    use event_bus::{dispatch_event, subscribe_event, Event, EventBus, EventResult};
 
     fn test_sub(event: &mut InteractEvent) {
         println!("Event called");
@@ -205,7 +194,6 @@ mod tests {
 
     #[test]
     fn event_test() {
-
         let mut test_bus = EventBus::new("test");
 
         subscribe_event!("test", test_sub);
@@ -217,12 +205,12 @@ mod tests {
             interact: Keyboard(glfw::Key::B),
             cancelled: false,
             reason: None,
-            data: MouseData::new()
+            data: MouseData::new(),
         };
 
         let mut init_event = InitEvent {
             cancelled: false,
-            reason: None
+            reason: None,
         };
 
         let result_interact: EventResult = dispatch_event!("test", &mut event);
@@ -234,7 +222,5 @@ mod tests {
         let result_init = dispatch_event!("test", &mut init_event);
 
         assert_eq!(result_init, EvCancelled("Event init cancelled".to_string()))
-
     }
-
 }
