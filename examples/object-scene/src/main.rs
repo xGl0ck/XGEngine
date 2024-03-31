@@ -253,95 +253,81 @@ fn main() {
         }
 
         let basic_object_vert_n: Box<[ColoredVertex]> = Box::new([
+            // bottom
             ColoredVertex {
-                coordinates: Vec3::new(0.0, 0.0, 0.0),
+                coordinates: Vec3::new(0.0, -1.0, 0.0),
                 color_rgba: 0xff000000,
-            },
-            ColoredVertex {
-                coordinates: Vec3::new(0.0, 0.0, 1.0),
-                color_rgba: 0xff0000ff,
-            },
-            ColoredVertex {
-                coordinates: Vec3::new(1.0, 0.0, 1.0),
-                color_rgba: 0xff00ff00,
             },
             ColoredVertex {
                 coordinates: Vec3::new(1.0, 0.0, 0.0),
-                color_rgba: 0xffff0000,
-            },
-            ColoredVertex {
-                coordinates: Vec3::new(0.0, 1.0, 0.0),
-                color_rgba: 0xffffff00,
-            },
-            ColoredVertex {
-                coordinates: Vec3::new(0.0, 1.0, 1.0),
-                color_rgba: 0xffffffff,
-            },
-            ColoredVertex {
-                coordinates: Vec3::new(1.0, 1.0, 1.0),
-                color_rgba: 0xff000000,
+                color_rgba: 0xff0000ff,
             },
             ColoredVertex {
                 coordinates: Vec3::new(1.0, 1.0, 0.0),
+                color_rgba: 0xff00ff00,
+            },
+            ColoredVertex {
+                coordinates: Vec3::new(0.0, 2.0, 0.0),
+                color_rgba: 0xffff0000,
+            },
+            ColoredVertex {
+                coordinates: Vec3::new(-1.0, 1.0, 0.0),
+                color_rgba: 0xffffff00,
+            },
+            ColoredVertex {
+                coordinates: Vec3::new(-1.0, 0.0, 0.0),
+                color_rgba: 0xffffffff,
+            },
+            // top
+            ColoredVertex {
+                coordinates: Vec3::new(0.0, -1.0, 2.0),
+                color_rgba: 0xff000000,
+            },
+            ColoredVertex {
+                coordinates: Vec3::new(1.0, 0.0, 2.0),
                 color_rgba: 0xff0000ff,
+            },
+            ColoredVertex {
+                coordinates: Vec3::new(1.0, 1.0, 2.0),
+                color_rgba: 0xff00ff00,
+            },
+            ColoredVertex {
+                coordinates: Vec3::new(0.0, 2.0, 2.0),
+                color_rgba: 0xffff0000,
+            },
+            ColoredVertex {
+                coordinates: Vec3::new(-1.0, 1.0, 2.0),
+                color_rgba: 0xffffff00,
+            },
+            ColoredVertex {
+                coordinates: Vec3::new(-1.0, 0.0, 2.0),
+                color_rgba: 0xffffffff,
             },
         ]);
 
         // indices for a cube
         let basic_object_idx_n: Box<[u16]> = Box::new([
-            0, 1, 2, // 0
-            1, 3, 2, 4, 6, 5, // 2
-            5, 6, 7, 0, 2, 4, // 4
-            4, 2, 6, 1, 5, 3, // 6
-            5, 7, 3, 0, 4, 1, // 8
-            4, 5, 1, 2, 3, 6, // 10
-            6, 3, 7,
-        ]);
-
-        let basic_object_vert_l_n: Box<[ColoredVertex]> = Box::new([
-            ColoredVertex {
-                coordinates: Vec3::new(0.0, 0.0, 0.0),
-                color_rgba: 0xff000000,
-            },
-            ColoredVertex {
-                coordinates: Vec3::new(0.0, 0.0, 2.0),
-                color_rgba: 0xff0000ff,
-            },
-            ColoredVertex {
-                coordinates: Vec3::new(2.0, 0.0, 2.0),
-                color_rgba: 0xff00ff00,
-            },
-            ColoredVertex {
-                coordinates: Vec3::new(2.0, 0.0, 0.0),
-                color_rgba: 0xffff0000,
-            },
-            ColoredVertex {
-                coordinates: Vec3::new(0.0, 2.0, 0.0),
-                color_rgba: 0xffffff00,
-            },
-            ColoredVertex {
-                coordinates: Vec3::new(0.0, 2.0, 2.0),
-                color_rgba: 0xffffffff,
-            },
-            ColoredVertex {
-                coordinates: Vec3::new(2.0, 2.0, 2.0),
-                color_rgba: 0xff000000,
-            },
-            ColoredVertex {
-                coordinates: Vec3::new(2.0, 2.0, 0.0),
-                color_rgba: 0xff0000ff,
-            },
-        ]);
-
-        // indices for a cube
-        let basic_object_idx_l_n: Box<[u16]> = Box::new([
-            0, 1, 2, // 0
-            1, 3, 2, 4, 6, 5, // 2
-            5, 6, 7, 0, 2, 4, // 4
-            4, 2, 6, 1, 5, 3, // 6
-            5, 7, 3, 0, 4, 1, // 8
-            4, 5, 1, 2, 3, 6, // 10
-            6, 3, 7,
+            // bottom
+            0, 1, 5, // 0
+            1, 2, 5, // 1
+            2, 4, 5, // 2
+            2, 3, 4, // 3
+            // top
+            6, 7, 11, // 0
+            7, 8, 11, // 1
+            8, 10, 11, // 2
+            8, 9, 10, // 3
+            // sides
+            0, 1, 6, // 1
+            1, 6, 7, // 2
+            1, 2, 7, // 3
+            2, 8, 7, // 4
+            2, 4, 8, // 5
+            8, 10, 4, // 6
+            3, 4, 9, // 7
+            2, 8, 9, // 8
+            8, 9, 3, // 9
+            5, 10, 11, // 10
         ]);
 
         // create colored scene object
@@ -349,14 +335,7 @@ fn main() {
             basic_object_vert_n,
             basic_object_idx_n,
             core::get_shader(id).unwrap(),
-            Vec3::new(7.0, 0.0, 0.0),
-        );
-
-        let mut scene_object_l_n = ColoredSceneObject::new(
-            basic_object_vert_l_n,
-            basic_object_idx_l_n,
-            core::get_shader(id).unwrap(),
-            Vec3::new(4.0, 0.0, 0.0),
+            Vec3::new(3.0, 0.0, 0.0),
         );
 
         let mut scene_binding = scene.unwrap();
@@ -366,7 +345,6 @@ fn main() {
         let mut chunk = Chunk::new(IVec2::new(0, 0));
 
         chunk.add_object(Box::new(scene_object_n));
-        chunk.add_object(Box::new(scene_object_l_n));
 
         scene_reference.add_chunk(chunk, Vec2::new(-50.0, -50.0), Vec2::new(50.0, 50.0));
 
