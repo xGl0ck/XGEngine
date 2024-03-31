@@ -1,16 +1,15 @@
-[package]
-name = "XGEngine"
-version = "0.1.0"
-edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace]
-members = [
-    "ExampleImplementation"
-]
+members = ["examples/object-scene", "crates/core"]
 
-[dependencies]
+[workspace.dependencies]
+
+#members
+core = { path = "crates/core" }
+cube-scene = { path = "examples/cube-scene" }
+
+#external
 event-bus = { git = "https://github.com/XglockMan/event-bus.git" }
 glfw = "0.51.0"
 raw-window-handle = "0.5.0"

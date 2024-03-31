@@ -1,12 +1,13 @@
 [package]
-name = "ExampleImplementation"
+name = "object-scene-example"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-XGEngine = { path = ".." }
-glfw = "0.51.0"
-glam = "0.23.0"
-event-bus = { git = "https://github.com/XglockMan/event-bus.git" }
+core.workspace = true
+glfw.workspace = true
+glam.workspace = true
+event-bus.workspace = true
+bgfx-rs.workspace = true
