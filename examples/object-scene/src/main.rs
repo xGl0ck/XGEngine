@@ -104,7 +104,9 @@ static PIXEL_SHADER: &'static [u8] = include_bytes!("../resources/shaders/opengl
 static VERTEX_SHADER: &'static [u8] = include_bytes!("../resources/shaders/opengl/vs_cubes.bin");
 
 fn main() {
-    let mut windowed = Windowed::new(1920, 1080, "Test", true, 60, 0x00B5DDFF);
+    const SKY_COLOR: u32 = 0x00B5DDFF;
+
+    let mut windowed = Windowed::new(1920, 1080, "obj-scene", true, 60, SKY_COLOR);
     windowed.add_key_handler(glfw::Key::Escape, glfw::Action::Press);
     windowed.add_key_handler(glfw::Key::W, glfw::Action::Press);
     windowed.add_key_handler(glfw::Key::S, glfw::Action::Press);
@@ -252,56 +254,59 @@ fn main() {
             panic!("Cannot get next scene");
         }
 
+        const QUI_OBJ_COLOR_A: u32 = 0xF906A500;
+        const QUI_OBJ_COLOR_B: u32 = 0xA61281FF;
+
         let basic_object_vert_n: Box<[ColoredVertex]> = Box::new([
             // bottom
             ColoredVertex {
                 coordinates: Vec3::new(0.0, -1.0, 0.0),
-                color_rgba: 0xff000000,
+                color_rgba: QUI_OBJ_COLOR_B,
             },
             ColoredVertex {
                 coordinates: Vec3::new(1.0, 0.0, 0.0),
-                color_rgba: 0xff0000ff,
+                color_rgba: QUI_OBJ_COLOR_A,
             },
             ColoredVertex {
                 coordinates: Vec3::new(1.0, 1.0, 0.0),
-                color_rgba: 0xff00ff00,
+                color_rgba: QUI_OBJ_COLOR_B,
             },
             ColoredVertex {
                 coordinates: Vec3::new(0.0, 2.0, 0.0),
-                color_rgba: 0xffff0000,
+                color_rgba: QUI_OBJ_COLOR_A,
             },
             ColoredVertex {
                 coordinates: Vec3::new(-1.0, 1.0, 0.0),
-                color_rgba: 0xffffff00,
+                color_rgba: QUI_OBJ_COLOR_B,
             },
             ColoredVertex {
                 coordinates: Vec3::new(-1.0, 0.0, 0.0),
-                color_rgba: 0xffffffff,
+                color_rgba: QUI_OBJ_COLOR_A,
             },
             // top
             ColoredVertex {
                 coordinates: Vec3::new(0.0, -1.0, 2.0),
-                color_rgba: 0xff000000,
+                color_rgba: QUI_OBJ_COLOR_B,
             },
             ColoredVertex {
                 coordinates: Vec3::new(1.0, 0.0, 2.0),
-                color_rgba: 0xff0000ff,
+                color_rgba: QUI_OBJ_COLOR_A,
             },
             ColoredVertex {
                 coordinates: Vec3::new(1.0, 1.0, 2.0),
-                color_rgba: 0xff00ff00,
+                color_rgba: QUI_OBJ_COLOR_B,
             },
             ColoredVertex {
                 coordinates: Vec3::new(0.0, 2.0, 2.0),
-                color_rgba: 0xffff0000,
+                color_rgba: QUI_OBJ_COLOR_A,
             },
             ColoredVertex {
                 coordinates: Vec3::new(-1.0, 1.0, 2.0),
-                color_rgba: 0xffffff00,
+                color_rgba: QUI_OBJ_COLOR_B,
             },
             ColoredVertex {
                 coordinates: Vec3::new(-1.0, 0.0, 2.0),
-                color_rgba: 0xffffffff,
+                color_rgba: QUI_OBJ_COLOR_A,
             },
         ]);
 
@@ -318,16 +323,18 @@ fn main() {
             8, 10, 11, // 2
             8, 9, 10, // 3
             // sides
-            0, 1, 6, // 1
-            1, 6, 7, // 2
-            1, 2, 7, // 3
-            2, 8, 7, // 4
-            2, 4, 8, // 5
-            8, 10, 4, // 6
-            3, 4, 9, // 7
-            2, 8, 9, // 8
-            8, 9, 3, // 9
-            5, 10, 11, // 10
+            0, 6, 7, // 1
+            7, 1, 0, // 2
+            1, 7, 8, // 3
+            8, 2, 1, // 4
+            2, 8, 9, // 5
+            9, 3, 2, // 6
+            3, 9, 10, // 7
+            10, 4, 3, // 8
+            4, 10, 11, // 9
+            11, 5, 4, // 10
+            5, 11, 6, // 11
+            6, 0, 5,
         ]);
 
         // create colored scene object
