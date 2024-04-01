@@ -2,7 +2,7 @@
 
 ## Build
 
-Entire application have been tested only on MacOS. It should work on other Platforms as well, but it's not guaranteed.
+Entire application have been tested only on MacOS. It should work on other platforms as well, but it's not guaranteed.
 Currently supported backends are:
 
 - Metal for MacOS
